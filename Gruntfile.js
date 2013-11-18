@@ -16,7 +16,7 @@ module.exports = function(grunt) {
     mochaTest: {
       test: {
         options: {
-          require: ['should', 'sinon']
+          require: ['should']
         },
         src: ['test/**/*.js']
       }
@@ -52,7 +52,7 @@ module.exports = function(grunt) {
     watch: {
       dev: {
         files: ['src/**/*.js', 'test/**/*.js'],
-        tasks: ['browserify','test', 'karma:unit:run']
+        tasks: ['test', 'browserify', 'karma:unit:run']
       },
     },
 
@@ -75,6 +75,9 @@ module.exports = function(grunt) {
       tests: {
         files: {
           'build/test/t_test.js': ['test/ticket_test.js'],
+        },
+        options: {
+          ignore: ['zombie', 'express', 'supertest']
         }
       }
     },

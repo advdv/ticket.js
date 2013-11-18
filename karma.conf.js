@@ -18,7 +18,7 @@ module.exports = function(config) {
       'node_modules/should/should.js',
 
       //the tests
-      'build/test/**/*.js'
+      'build/test/*.js'
     ],
 
 
@@ -26,12 +26,6 @@ module.exports = function(config) {
     exclude: [
       
     ],
-
-
-    // test results reporter to use
-    // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
-    reporters: ['progress'],
-
 
     // web server port
     port: 9876,
