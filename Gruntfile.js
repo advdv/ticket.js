@@ -18,7 +18,7 @@ module.exports = function(grunt) {
         options: {
           require: ['should']
         },
-        src: ['test/**/*.js']
+        src: ['test/**/*_test.js']
       }
     },
 

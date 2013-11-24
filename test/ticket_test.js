@@ -1,5 +1,11 @@
 /* global window */
 var Ticket = require('../src/ticket.js');
+var Transit = require('../src/transit.js');
+var State = require('../src/state.js');
+var Resolver = require('../src/resolver.js');
+
+var Promise = require("bluebird");
+var Emitter = require('eventemitter2').EventEmitter2;
 var sinon = require('sinon');
 
 var express = require('express');
@@ -19,17 +25,20 @@ try {
 
 describe('Ticket', function(){
 
-  var st, bt;
+  var st, bt, e, r;
   beforeEach(function(){
+
+    e = new Emitter();
+    r = new Resolver();
 
     if(server) {
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(sctx);      
+      st = new Ticket(e, r, sctx);      
     }
   
-    bt = new Ticket(bctx);
+    bt = new Ticket(e, r, bctx);
 
   });
 
@@ -68,33 +77,147 @@ describe('Ticket', function(){
 
     it('should install event listener in the browser', function(){
 
-      sinon.stub(bt, 'handle');
-      bt.install();
+      sinon.stub(bt, 'normalize', function(){ return new Transit('/test'); });
+      sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
+      var res = bt.install();
       bctx.document.onclick();
+      bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(1);
+      res.should.equal(bt);
 
     });
 
     if(server) {
-        it('should install middleware listener on the server', function(done){
+      it('should install middleware listener on the server', function(done){
 
-          sinon.stub(st, 'handle', function(req, res){ arguments.length.should.equal(2); res.end(); });
-          st.install();
-          
-          request(sctx)
-            .get('/bogus')
-            .expect(200, '')
-            .end(function(){
-              st.handle.callCount.should.equal(1);
-              done();
-            });
-
+        var t = new Transit('/test');
+        sinon.stub(st, 'normalize', function(req, res){ 
+            arguments.length.should.equal(2); 
+            res.end(); //just cancel the req for now
+            return t;
         });
+
+        sinon.stub(st, 'handle', function(){ 
+            return new Promise(function(resolve, reject){
+                resolve('test');
+
+              });
+            }
+        );
+
+        st.install();
+        
+        request(sctx)
+          .get('/bogus')
+          .expect(200, '')
+          .end(function(){
+            st.normalize.callCount.should.equal(1);
+            st.handle.callCount.should.equal(1);
+            t.hasAttribute('_res').should.equal(true);
+            t.hasAttribute('_req').should.equal(true);
+            t.hasAttribute('_next').should.equal(true);
+            done();
+          });
+
+      });
     }
 
   });
 
   describe('#handle()', function(){
+
+    var t;
+    beforeEach(function(){
+      t = new Transit('/bogus');
+    });
+
+    it('should emit start event', function(done) {
+
+      e.on('transit.start', function(t){
+        t.setFunction( function(){} );
+        t.should.be.an.instanceOf(Transit);
+        done();
+      });
+      
+      bt.handle(t);
+
+    });
+
+    it('should call deconstruct and emit controller event', function(done) {
+
+      sinon.stub(t, 'deconstruct');
+
+      var c = function() {};
+
+      e.on('transit.start', function(t){
+        t.setFunction( c );
+      });
+
+      e.on('transit.controller', function(t){        
+        t.scope.should.an.instanceOf(Object);
+        t.fn.should.equal(c);
+        t.args.should.be.an.instanceOf(Array);
+        t.deconstruct.callCount.should.equal(1);
+        done();
+      });
+      
+      bt.handle(t);
+
+    });
+
+    it('should run function and emit view event', function(done) {
+
+      e.on('transit.controller', function(t){  
+        t.setFunction(function(){
+          this.render(new State('hello world'));
+        });
+      });
+
+      e.on('transit.view', function(t){  
+        t.should.be.an.instanceOf(Transit);
+        t.result.content.should.equal('hello world');
+
+        done();
+      });
+
+      bt.handle(t);
+
+    });
+
+    it('should run end event', function(done) {
+
+      e.on('transit.controller', function(t){  
+        t.setFunction(function(){
+          this.render(new State('hello world'));
+        });
+      });
+
+      e.on('transit.end', function(t){
+        t.should.be.an.instanceOf(Transit);
+
+        done();
+      });
+
+      var ended = bt.handle(t);
+      ended.should.be.an.instanceOf(Promise);
+
+    });
+
+
+    it('throw on wrong response', function() {
+
+      r.getFunction = function(){ return false; };
+
+      (function(){
+        bt.handle(t);  
+      }).should.throw();
+      
+
+    });
+
+  });
+
+  describe('#normalize()', function(){
 
     it('should throw on wrong browser event', function(){
 
@@ -106,7 +229,7 @@ describe('Ticket', function(){
 
       link.onclick = function(e) {
         try {
-          bt.handle();
+          bt.normalize();
           failed = false;
         } catch(err) {
           failed = true;
@@ -120,7 +243,7 @@ describe('Ticket', function(){
 
       link.onclick = function(e) {
         try {
-          bt.handle('bogus');
+          bt.normalize('bogus');
           failed = false;
         } catch(err) {
           failed = true;
@@ -129,10 +252,12 @@ describe('Ticket', function(){
 
       link.dispatchEvent(e);
       failed.should.equal(true); // no event passed
+      var t = false;
 
       link.onclick = function(e) {
         try {
-          bt.handle(e);
+          t = bt.normalize(e);
+
           failed = false;
           e.preventDefault();
         } catch(err) {
@@ -147,34 +272,49 @@ describe('Ticket', function(){
       link.dispatchEvent(e);
       failed.should.equal(false);
 
+      //asserts
+      t.should.be.an.instanceOf(Transit);
+      t.url.should.equal('/test');
+
+      link.setAttribute('href', '/test');
+      link.dispatchEvent(e);
+      t.url.should.equal('/test');
+
     });
 
     if(server) {
       it('should throw on wrong server args', function(){
 
-
         sctx.use(function(req,res){
 
           (function(){
-            st.handle('a'); //to few args
+            st.normalize('a'); //to few args
           }).should.throw();
 
           (function(){
-            st.handle('a', 'a'); // wrong req
+            st.normalize('a', 'a'); // wrong req
           }).should.throw();
           
           (function(){
-            st.handle(req, 'a'); // wrong req
+            st.normalize(req, 'a'); // wrong req
           }).should.throw();
 
+          var t = st.normalize(req, res);
+          t.should.be.an.instanceOf(Transit);
 
-          st.handle(req, res);
-
+          if(req.url === '/test') {
+            t.url.should.equal('/test');
+          } else {
+            t.url.should.equal('/test2');
+            t.method.should.equal('POST');
+          }
           res.end();
         });
 
         //trigger middleware
-        request(sctx).get('/bogus').end(function(){});
+        request(sctx).get('/test').end(function(){});
+
+        request(sctx).post('/test2').end(function(){});
 
       });
     }

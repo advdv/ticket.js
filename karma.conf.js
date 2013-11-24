@@ -18,7 +18,7 @@ module.exports = function(config) {
       'node_modules/should/should.js',
 
       //the tests
-      'build/test/*.js'
+      'build/test/*_test.js'
     ],
 
 

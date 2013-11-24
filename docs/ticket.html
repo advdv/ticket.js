@@ -1,12 +1,15 @@
-<!DOCTYPE html><html lang="en"><head><title>ticket</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="ticket"><meta name="groc-project-path" content="src/ticket.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/ticket.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>global process</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+<!DOCTYPE html><html lang="en"><head><title>ticket</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="ticket"><meta name="groc-project-path" content="src/ticket.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/ticket.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./transit.js&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;bluebird&quot;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>The ticket instance takes an single argument in the browser environment; the browser window</p>
 
 <p>Parameters:</p>
 
 <ul>
-<li><strong>win is optional and must be a DOMWindow.</strong><br/>(the dom window not needed on the server)</li>
-</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+<li><p><strong>emmitter must be an object.</strong><br/>(The event emitter that emits the kernel events)</p></li>
+<li><p><strong>resolver must be a Resolver.</strong><br/>(the object responsible for resolving the callable from the transition)</p></li>
+<li><p><strong>context is optional and can be a DOMWindow or an express.</strong><br/>(the window on the client &amp; express app on the server)</p></li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">emitter</span><span class="p">,</span> <span class="nx">resolver</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
   <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
 
 <p>The the context in which we are running, on the server this is server instance
@@ -16,25 +19,70 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
 
 <p><strong>Returns a Boolean</strong></p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">isServer</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">return</span> <span class="p">((</span><span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="o">:</span> <span class="p">(</span><span class="kc">false</span><span class="p">));</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method handle()</span></p>
+
+<p>Handle the normalized transit throughout its livecycle</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>transit must be a Transit.</strong><br/>(the transit)</li>
+</ul>
+
+<p><strong>Returns a [type]</strong><br/>([description])</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">handle</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.start&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+
+    <span class="c1">//start deconstruction</span>
+    <span class="kd">var</span> <span class="nx">deconstructed</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">deconstruct</span><span class="p">();</span>
+
+    <span class="nx">transit</span><span class="p">.</span><span class="nx">setScope</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getScope</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="nx">transit</span><span class="p">.</span><span class="nx">setArguments</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getArguments</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">fn</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span>
+      <span class="nx">transit</span><span class="p">.</span><span class="nx">setFunction</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getFunction</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
+
+    <span class="c1">//controller was found</span>
+    <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.controller&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+
+    <span class="c1">//call controller, then construct</span>
+    <span class="kd">var</span> <span class="nx">constructed</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">run</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">){</span>
+
+      <span class="c1">//controller returned, new state can now be created</span>
+      <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.view&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+
+      <span class="c1">//start construction</span>
+      <span class="k">return</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">construct</span><span class="p">();</span>
+    <span class="p">});</span>
+
+    <span class="c1">//when both deconstruction and construction has ended</span>
+    <span class="kd">var</span> <span class="nx">ended</span> <span class="o">=</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">deconstructed</span><span class="p">,</span> <span class="nx">constructed</span><span class="p">]);</span>
+    <span class="nx">ended</span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+      <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">ended</span><span class="p">;</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method install()</span></p>
 
 <p>Install onto the context, in the browser this means listening to click
-events, on the server this installing middleware</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">()</span> <span class="p">{</span>
+events, on the server this means installing middleware</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span><span class="p">())</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">){</span>
-        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
-
-        <span class="c1">//Todo: call next()?</span>
-
+        <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_res&#39;</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_req&#39;</span><span class="p">,</span> <span class="nx">req</span><span class="p">);</span>
+        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_next&#39;</span><span class="p">,</span> <span class="nx">next</span><span class="p">);</span>
+        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span>
       <span class="p">});</span>
     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span><span class="p">.</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>      
-        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">);</span>
       <span class="p">};</span>
     <span class="p">}</span>
-  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method handel()</span></p>
 
-<p>Handles the event for each environment, in the browser this is the click event, on the 
+    <span class="k">return</span> <span class="nx">self</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method normalize()</span></p>
+
+<p>Normalize the event for each environment, in the browser this is the click event, on the 
 server the request/res object</p>
 
 <p>Parameters:</p>
@@ -42,38 +90,32 @@ server the request/res object</p>
 <ul>
 <li><p><strong>the can be a DOMEvent or a req.</strong><br/>(event/request)</p></li>
 <li><p><strong>res is optional and must be a res.</strong><br/>(the response object of the server)</p></li>
-</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">handle</span><span class="p">()</span> <span class="p">{</span>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">normalize</span><span class="p">()</span> <span class="p">{</span>
 
     <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span><span class="p">())</span> <span class="p">{</span>
       <span class="k">if</span><span class="p">(</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">!==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] Handle() expects 2 arguments, received: &#39;</span><span class="o">+</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] normalize() expects 2 arguments, received: &#39;</span><span class="o">+</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">);</span>
       <span class="p">}</span>        
 
       <span class="kd">var</span> <span class="nx">req</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
       <span class="kd">var</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
 
       <span class="k">if</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
-        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] Handle() expects first arguments to be an req object with an url, received: &#39;</span><span class="o">+</span> <span class="nx">req</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] normalize() expects first arguments to be an req object with an url, received: &#39;</span><span class="o">+</span> <span class="nx">req</span><span class="p">);</span>
 
       <span class="k">if</span><span class="p">(</span><span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
-        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] Handle() expects second arguments to be an res object with an url, received: &#39;</span><span class="o">+</span> <span class="nx">req</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] normalize() expects second arguments to be an res object with a statusCode, received: &#39;</span><span class="o">+</span> <span class="nx">req</span><span class="p">);</span>
 
-      <span class="c1">//TODO: Return something useful</span>
+      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
 
     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
 
-
       <span class="kd">var</span> <span class="nx">e</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>      
       <span class="k">if</span><span class="p">(</span><span class="nx">e</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">||</span> <span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] Handle() expects argument to be an DOMEvent, received:&#39;</span> <span class="o">+</span> <span class="nx">e</span><span class="p">);</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] normalize() expects argument to be an DOMEvent, received:&#39;</span> <span class="o">+</span> <span class="nx">e</span><span class="p">);</span>
       <span class="p">}</span>
 
-      <span class="k">if</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">.</span><span class="nx">hasAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span> 
-        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] Handle() expected clicked element &quot;&#39;</span><span class="o">+</span><span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span><span class="o">+</span><span class="s1">&#39;&quot; to have an href attribute:&#39;</span> <span class="o">+</span> <span class="nx">e</span><span class="p">);</span>
-
-      <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">);</span>
-
-      <span class="c1">//TODO: return something useful</span>
+      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
 
     <span class="p">}</span>
 

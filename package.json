@@ -40,5 +40,9 @@
     "zombie": "~2.0.0-alpha24",
     "express": "~3.4.4",
     "supertest": "~0.8.1"
+  },
+  "dependencies": {
+    "eventemitter2": "~0.4.13",
+    "bluebird": "~0.10.3-0"
   }
 }
