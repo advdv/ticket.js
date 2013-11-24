@@ -1,5 +1,5 @@
 var Transit = require('../src/transit.js');
-var State = require('../src/State.js');
+var State = require('../src/state.js');
 
 var Promise = require("bluebird");
 var sinon = require('sinon');
