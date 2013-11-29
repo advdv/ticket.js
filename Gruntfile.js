@@ -77,7 +77,7 @@ module.exports = function(grunt) {
           'build/test/t_test.js': ['test/ticket_test.js'],
         },
         options: {
-          ignore: ['zombie', 'express', 'supertest']
+          ignore: ['zombie', 'express', 'supertest', 'sinon']
         }
       }
     },

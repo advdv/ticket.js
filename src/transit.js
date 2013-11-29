@@ -61,6 +61,17 @@ var Transit = function Transit(url, method) {
   self.oldState = false;
 
   /**
+   * Set the attributes container on this transit, overwrites existing
+   * attributes
+   *
+   * @method setAttributes()
+   * @param {object} attrs the new attributes
+   */
+  self.setAttributes = function setAttributes(attrs) {
+    attributes = attrs;
+  };
+
+  /**
    * Set transit specific attribut
    *
    * @method setAttribute()

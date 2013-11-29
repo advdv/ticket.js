@@ -6,7 +6,6 @@ var Resolver = require('../src/resolver.js');
 
 var Promise = require("bluebird");
 var Emitter = require('eventemitter2').EventEmitter2;
-var sinon = require('sinon');
 
 var express = require('express');
 var request = require('supertest');
@@ -18,9 +17,11 @@ var browser = false;
 try {
   var bctx = window;
   var sctx = false; //fake server ctx
+  var sinon = window.sinon;
 
 } catch(e) {
   server = true;
+  var sinon = require('sinon');
 }
 
 describe('Ticket', function(){

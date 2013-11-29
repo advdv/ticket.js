@@ -16,6 +16,7 @@ module.exports = function(config) {
     files: [
 
       'node_modules/should/should.js',
+      'node_modules/sinon/pkg/sinon.js',
 
       //the tests
       'build/test/*_test.js'

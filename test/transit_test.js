@@ -15,6 +15,18 @@ describe('Transit', function(){
   
     t.method.should.equal('GET');
     t.url.should.equal('/test');
+
+    t.setAttribute('test', 'test');
+    t.getAttribute('test').should.equal('test');
+
+    t.setAttributes({
+      test: 'replace',
+      "new": 'new'
+    });
+
+    t.getAttribute('test').should.equal('replace');
+    t.getAttribute('new').should.equal('new');
+
   });
 
 
