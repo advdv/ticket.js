@@ -218,7 +218,7 @@ var Transit = function Transit(url, Promise, method) {
    * The arguments that will be passed to the function
    * @type {Array}
    */
-  self.args = [];
+  self.arguments = [];
 
   /**
    * The function that acts as the controller
@@ -279,6 +279,16 @@ var Transit = function Transit(url, Promise, method) {
   };
 
   /**
+   * Get all configured attributes of the transit
+   *
+   * @method getAttributes()
+   * @return {object} [description]
+   */
+  self.getAttributes = function getAttributes() {
+    return attributes;
+  };
+
+  /**
    * Return the attribute by its name
    *
    * @method getAttribute()
@@ -331,7 +341,7 @@ var Transit = function Transit(url, Promise, method) {
    * @param {Array} args the arguments
    */
   self.setArguments = function setArguments(args) {
-    self.args = args;
+    self.arguments = args;
   };
 
   /**
@@ -388,8 +398,8 @@ var Transit = function Transit(url, Promise, method) {
       throw new Error('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
     }
 
-    if(!Array.isArray(self.args)) {
-      throw new Error('Provided controller arguments should be an Array, received "'+self.args+'"');
+    if(!Array.isArray(self.arguments)) {
+      throw new Error('Provided controller arguments should be an Array, received "'+self.arguments+'"');
     }
 
     if(typeof self.scope !== 'object') {

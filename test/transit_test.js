@@ -36,6 +36,9 @@ describe('Transit', function(){
     t.getAttribute('test').should.equal('replace2');
     t.getAttribute('new').should.equal('new');
     t.getAttribute('extra').should.equal('extra');
+    
+    var res = t.getAttributes();
+    Object.keys(res).length.should.equal(3);
 
   });
 

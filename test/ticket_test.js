@@ -160,7 +160,7 @@ describe('Ticket', function(){
       e.on('transit.controller', function(t){        
         t.scope.should.an.instanceOf(Object);
         t.fn.should.equal(c);
-        t.args.should.be.an.instanceOf(Array);
+        t.arguments.should.be.an.instanceOf(Array);
         t.deconstruct.callCount.should.equal(1);
         done();
       });
