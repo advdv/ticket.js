@@ -61,6 +61,7 @@ describe('Transit', function(){
       sinon.spy(t, 'render');
 
       t.setFunction(function(){
+        arguments[0].should.equal(t);
         return 'a';
       });
 

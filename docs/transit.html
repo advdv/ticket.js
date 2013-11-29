@@ -172,7 +172,7 @@ the given arguments</p>
 
     <span class="c1">//if controller returns something right away (sync), try to render it</span>
     <span class="nx">self</span><span class="p">.</span><span class="nx">startTimeout</span><span class="p">();</span>
-    <span class="kd">var</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">scope</span><span class="p">,</span> <span class="nx">self</span><span class="p">.</span><span class="nx">args</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">scope</span><span class="p">,</span> <span class="p">[</span><span class="nx">self</span><span class="p">]);</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">res</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span>
     <span class="p">}</span>

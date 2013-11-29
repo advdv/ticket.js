@@ -5625,7 +5625,7 @@ var Transit = function Transit(url, Promise, method) {
 
     //if controller returns something right away (sync), try to render it
     self.startTimeout();
-    var res = self.fn.apply(self.scope, self.args);
+    var res = self.fn.apply(self.scope, [self]);
     if(res !== undefined) {
       self.render(res);
     }
