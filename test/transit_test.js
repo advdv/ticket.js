@@ -1,3 +1,4 @@
+/*globals setTimeout */
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 
@@ -8,7 +9,7 @@ describe('Transit', function(){
 
   var t;
   beforeEach(function(){
-    t = new Transit('/test');
+    t = new Transit('/test', Promise);
   });
 
   it("should construct promises", function(){
@@ -142,8 +143,5 @@ describe('Transit', function(){
     });
 
   });
-
-
-
 
 });

@@ -5256,16 +5256,16 @@ var State = function State(content) {
 module.exports = State;
 },{}],44:[function(require,module,exports){
 var Transit = require('./transit.js');
-var Promise = require("bluebird");
 
 /**
  * The ticket instance takes an single argument in the browser environment; the browser window
  *
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
+ * @param {Promixe} the promise library
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, context) {
+var Ticket = function Ticket(emitter, resolver, Promise, context) {
   var self = this;
 
   /**
@@ -5375,7 +5375,7 @@ var Ticket = function Ticket(emitter, resolver, context) {
       if(res.statusCode === undefined)
         throw new Error('[SERVER] normalize() expects second arguments to be an res object with a statusCode, received: '+ req);
 
-      return Transit.createFromReq(req, res);
+      return Transit.createFromReq(req, res, Promise);
 
     } else {
 
@@ -5384,7 +5384,7 @@ var Ticket = function Ticket(emitter, resolver, context) {
         throw new Error('[CLIENT] normalize() expects argument to be an DOMEvent, received:' + e);
       }
 
-      return Transit.createFromEvent(e);
+      return Transit.createFromEvent(e, Promise);
 
     }
 
@@ -5396,8 +5396,8 @@ var Ticket = function Ticket(emitter, resolver, context) {
 };
 
 module.exports = Ticket;
-},{"./transit.js":45,"bluebird":4}],45:[function(require,module,exports){
-var Promise = require("bluebird");
+},{"./transit.js":45}],45:[function(require,module,exports){
+/* globals setTimeout, clearTimeout */
 var State = require('./state.js');
 
 /**
@@ -5406,10 +5406,34 @@ var State = require('./state.js');
  * @param {string} url    the url
  * @param {string} method the method
  */
-var Transit = function Transit(url, method) {
+var Transit = function Transit(url, Promise, method) {
   var self = this;
   var runResolver = Promise.defer();
   var attributes = {};
+  var timer;
+
+  /**
+   * Maximum time we wait for the controller to finish
+   * 
+   * @type {Number}
+   */
+  self.MAX_EXECUTION_TIME = 5000;
+
+  /**
+   * Start maximum execution timer
+   */
+  self.startTimeout = function startTimeout() {
+    timer = setTimeout(function(){
+      throw new Error('Controller for transit to url "' + self.url + '" exceeded maximum execution time of: "'+self.MAX_EXECUTION_TIME+'ms", did the controller call render?');
+    }, self.MAX_EXECUTION_TIME);
+  };
+
+  /**
+   * Stop timer that prevents maximum execution time
+   */
+  self.stopTimeout = function stopTimeout() {
+    clearTimeout(timer);
+  };
 
   /**
    * The new url we are transitioning to
@@ -5600,6 +5624,7 @@ var Transit = function Transit(url, method) {
     }
 
     //if controller returns something right away (sync), try to render it
+    self.startTimeout();
     var res = self.fn.apply(self.scope, self.args);
     if(res !== undefined) {
       self.render(res);
@@ -5619,6 +5644,7 @@ var Transit = function Transit(url, method) {
   self.render = function render(result) {
     runResolver.resolve(result);
     self.result = result;
+    self.stopTimeout();
     
     if(!result) {
       throw new Error('Did you provide a value when rendering? received: "'+result+'"');
@@ -5640,7 +5666,7 @@ var Transit = function Transit(url, method) {
  * @param  {DOMEvent} e the event
  * @return {Transit}   the transit instance
  */
-Transit.createFromEvent = function(e) {
+Transit.createFromEvent = function(e, Promise) {
 
   if(e.currentTarget.hasAttribute('href') === false) 
     throw new Error('[CLIENT] normalize() expected clicked element "'+e.currentTarget+'" to have an href attribute.');
@@ -5650,7 +5676,7 @@ Transit.createFromEvent = function(e) {
     url = url.substring(url.indexOf('#')+1);
   }
 
-  var t = new Transit(url);
+  var t = new Transit(url, Promise);
   return t;
 };
 
@@ -5661,8 +5687,8 @@ Transit.createFromEvent = function(e) {
  * @param  {res} res express response
  * @return {Transit}     The transit instance
  */
-Transit.createFromReq = function(req, res) {
-  var t = new Transit(req.url, req.method);
+Transit.createFromReq = function(req, res, Promise) {
+  var t = new Transit(req.url, Promise, req.method);
 
   return t;
 };
@@ -5670,7 +5696,7 @@ Transit.createFromReq = function(req, res) {
 
 
 module.exports = Transit;
-},{"./state.js":43,"bluebird":4}],46:[function(require,module,exports){
+},{"./state.js":43}],46:[function(require,module,exports){
 /* global window */
 var Ticket = require('../src/ticket.js');
 var Transit = require('../src/transit.js');
@@ -5709,10 +5735,10 @@ describe('Ticket', function(){
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, sctx);      
+      st = new Ticket(e, r, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, bctx);
+    bt = new Ticket(e, r, Promise, bctx);
 
   });
 
@@ -5751,7 +5777,7 @@ describe('Ticket', function(){
 
     it('should install event listener in the browser', function(){
 
-      sinon.stub(bt, 'normalize', function(){ return new Transit('/test'); });
+      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
       sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
       var res = bt.install();
       bctx.document.onclick();
@@ -5764,7 +5790,7 @@ describe('Ticket', function(){
     if(server) {
       it('should install middleware listener on the server', function(done){
 
-        var t = new Transit('/test');
+        var t = new Transit('/test', Promise);
         sinon.stub(st, 'normalize', function(req, res){ 
             arguments.length.should.equal(2); 
             res.end(); //just cancel the req for now
@@ -5802,9 +5828,10 @@ describe('Ticket', function(){
 
     var t;
     beforeEach(function(){
-      t = new Transit('/bogus');
+      t = new Transit('/bogus', Promise);
     });
 
+    
     it('should emit start event', function(done) {
 
       e.on('transit.start', function(t){
@@ -5814,8 +5841,10 @@ describe('Ticket', function(){
       });
       
       bt.handle(t);
+      t.stopTimeout();
 
     });
+
 
     it('should call deconstruct and emit controller event', function(done) {
 
@@ -5836,8 +5865,10 @@ describe('Ticket', function(){
       });
       
       bt.handle(t);
+      t.stopTimeout();
 
     });
+  
 
     it('should run function and emit view event', function(done) {
 
@@ -5877,18 +5908,21 @@ describe('Ticket', function(){
 
     });
 
-
+    
     it('throw on wrong response', function() {
 
       r.getFunction = function(){ return false; };
-
       (function(){
-        bt.handle(t);  
+        try {
+          bt.handle(t);    
+        } catch(err) {
+          t.stopTimeout();
+          throw err;
+        }        
       }).should.throw();
       
-
     });
-
+  
   });
 
   describe('#normalize()', function(){

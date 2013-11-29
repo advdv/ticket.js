@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><title>transit</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="transit"><meta name="groc-project-path" content="src/transit.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/transit.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;bluebird&quot;</span><span class="p">);</span>
-<span class="kd">var</span> <span class="nx">State</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./state.js&#39;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+<!DOCTYPE html><html lang="en"><head><title>transit</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="transit"><meta name="groc-project-path" content="src/transit.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/transit.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>globals setTimeout, clearTimeout</p></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">State</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./state.js&#39;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>A new transition requires the url to transit to and the method</p>
 
@@ -8,10 +7,19 @@
 <ul>
 <li><p><strong>url must be a string.</strong><br/>(the url)</p></li>
 <li><p><strong>method must be a string.</strong><br/>(the method)</p></li>
-</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">method</span><span class="p">)</span> <span class="p">{</span>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">method</span><span class="p">)</span> <span class="p">{</span>
   <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
   <span class="kd">var</span> <span class="nx">runResolver</span> <span class="o">=</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">defer</span><span class="p">();</span>
-  <span class="kd">var</span> <span class="nx">attributes</span> <span class="o">=</span> <span class="p">{};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+  <span class="kd">var</span> <span class="nx">attributes</span> <span class="o">=</span> <span class="p">{};</span>
+  <span class="kd">var</span> <span class="nx">timer</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>Maximum time we wait for the controller to finish</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Start maximum execution timer</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">startTimeout</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">startTimeout</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">timer</span> <span class="o">=</span> <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;Controller for transit to url &quot;&#39;</span> <span class="o">+</span> <span class="nx">self</span><span class="p">.</span><span class="nx">url</span> <span class="o">+</span> <span class="s1">&#39;&quot; exceeded maximum execution time of: &quot;&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span><span class="o">+</span><span class="s1">&#39;ms&quot;, did the controller call render?&#39;</span><span class="p">);</span>
+    <span class="p">},</span> <span class="nx">self</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span><span class="p">);</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Stop timer that prevents maximum execution time</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">stopTimeout</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">stopTimeout</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">clearTimeout</span><span class="p">(</span><span class="nx">timer</span><span class="p">);</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
 
 <p>The new url we are transitioning to</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">url</span> <span class="o">=</span> <span class="nx">url</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
 
@@ -163,6 +171,7 @@ the given arguments</p>
     <span class="p">}</span>
 
     <span class="c1">//if controller returns something right away (sync), try to render it</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">startTimeout</span><span class="p">();</span>
     <span class="kd">var</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">scope</span><span class="p">,</span> <span class="nx">self</span><span class="p">.</span><span class="nx">args</span><span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">res</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span>
@@ -183,6 +192,7 @@ the given arguments</p>
 <p><strong>Returns a State</strong><br/>(the new state or an exception)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">render</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">runResolver</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
     <span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">=</span> <span class="nx">result</span><span class="p">;</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">stopTimeout</span><span class="p">();</span>
     
     <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
       <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;Did you provide a value when rendering? received: &quot;&#39;</span><span class="o">+</span><span class="nx">result</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
@@ -205,7 +215,7 @@ the given arguments</p>
 <li><strong>e must be a DOMEvent.</strong><br/>(the event)</li>
 </ul>
 
-<p><strong>Returns a Transit</strong><br/>(the transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+<p><strong>Returns a Transit</strong><br/>(the transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">)</span> <span class="p">{</span>
 
   <span class="k">if</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">.</span><span class="nx">hasAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span> 
     <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] normalize() expected clicked element &quot;&#39;</span><span class="o">+</span><span class="nx">e</span><span class="p">.</span><span class="nx">currentTarget</span><span class="o">+</span><span class="s1">&#39;&quot; to have an href attribute.&#39;</span><span class="p">);</span>
@@ -215,7 +225,7 @@ the given arguments</p>
     <span class="nx">url</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">substring</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
   <span class="p">}</span>
 
-  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">);</span>
   <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
 <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
@@ -228,8 +238,8 @@ the given arguments</p>
 <li><p><strong>res must be a res.</strong><br/>(express response)</p></li>
 </ul>
 
-<p><strong>Returns a Transit</strong><br/>(The transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">);</span>
+<p><strong>Returns a Transit</strong><br/>(The transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">);</span>
 
   <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
 <span class="p">};</span>

@@ -1,4 +1,4 @@
-var Promise = require("bluebird");
+/* globals setTimeout, clearTimeout */
 var State = require('./state.js');
 
 /**
@@ -7,10 +7,34 @@ var State = require('./state.js');
  * @param {string} url    the url
  * @param {string} method the method
  */
-var Transit = function Transit(url, method) {
+var Transit = function Transit(url, Promise, method) {
   var self = this;
   var runResolver = Promise.defer();
   var attributes = {};
+  var timer;
+
+  /**
+   * Maximum time we wait for the controller to finish
+   * 
+   * @type {Number}
+   */
+  self.MAX_EXECUTION_TIME = 5000;
+
+  /**
+   * Start maximum execution timer
+   */
+  self.startTimeout = function startTimeout() {
+    timer = setTimeout(function(){
+      throw new Error('Controller for transit to url "' + self.url + '" exceeded maximum execution time of: "'+self.MAX_EXECUTION_TIME+'ms", did the controller call render?');
+    }, self.MAX_EXECUTION_TIME);
+  };
+
+  /**
+   * Stop timer that prevents maximum execution time
+   */
+  self.stopTimeout = function stopTimeout() {
+    clearTimeout(timer);
+  };
 
   /**
    * The new url we are transitioning to
@@ -201,6 +225,7 @@ var Transit = function Transit(url, method) {
     }
 
     //if controller returns something right away (sync), try to render it
+    self.startTimeout();
     var res = self.fn.apply(self.scope, self.args);
     if(res !== undefined) {
       self.render(res);
@@ -220,6 +245,7 @@ var Transit = function Transit(url, method) {
   self.render = function render(result) {
     runResolver.resolve(result);
     self.result = result;
+    self.stopTimeout();
     
     if(!result) {
       throw new Error('Did you provide a value when rendering? received: "'+result+'"');
@@ -241,7 +267,7 @@ var Transit = function Transit(url, method) {
  * @param  {DOMEvent} e the event
  * @return {Transit}   the transit instance
  */
-Transit.createFromEvent = function(e) {
+Transit.createFromEvent = function(e, Promise) {
 
   if(e.currentTarget.hasAttribute('href') === false) 
     throw new Error('[CLIENT] normalize() expected clicked element "'+e.currentTarget+'" to have an href attribute.');
@@ -251,7 +277,7 @@ Transit.createFromEvent = function(e) {
     url = url.substring(url.indexOf('#')+1);
   }
 
-  var t = new Transit(url);
+  var t = new Transit(url, Promise);
   return t;
 };
 
@@ -262,8 +288,8 @@ Transit.createFromEvent = function(e) {
  * @param  {res} res express response
  * @return {Transit}     The transit instance
  */
-Transit.createFromReq = function(req, res) {
-  var t = new Transit(req.url, req.method);
+Transit.createFromReq = function(req, res, Promise) {
+  var t = new Transit(req.url, Promise, req.method);
 
   return t;
 };

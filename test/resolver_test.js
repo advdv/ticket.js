@@ -1,11 +1,13 @@
 var Resolver = require('../src/resolver.js');
 var Transit = require('../src/transit.js');
 
+var Promise = require("bluebird");
+
 describe('Resolver', function(){
 
   var t,r;
   beforeEach(function(){
-    t = new Transit();
+    t = new Transit('/', Promise);
     r = new Resolver();
   });
 

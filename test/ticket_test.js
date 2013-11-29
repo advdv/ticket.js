@@ -36,10 +36,10 @@ describe('Ticket', function(){
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, sctx);      
+      st = new Ticket(e, r, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, bctx);
+    bt = new Ticket(e, r, Promise, bctx);
 
   });
 
@@ -78,7 +78,7 @@ describe('Ticket', function(){
 
     it('should install event listener in the browser', function(){
 
-      sinon.stub(bt, 'normalize', function(){ return new Transit('/test'); });
+      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
       sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
       var res = bt.install();
       bctx.document.onclick();
@@ -91,7 +91,7 @@ describe('Ticket', function(){
     if(server) {
       it('should install middleware listener on the server', function(done){
 
-        var t = new Transit('/test');
+        var t = new Transit('/test', Promise);
         sinon.stub(st, 'normalize', function(req, res){ 
             arguments.length.should.equal(2); 
             res.end(); //just cancel the req for now
@@ -129,9 +129,10 @@ describe('Ticket', function(){
 
     var t;
     beforeEach(function(){
-      t = new Transit('/bogus');
+      t = new Transit('/bogus', Promise);
     });
 
+    
     it('should emit start event', function(done) {
 
       e.on('transit.start', function(t){
@@ -141,8 +142,10 @@ describe('Ticket', function(){
       });
       
       bt.handle(t);
+      t.stopTimeout();
 
     });
+
 
     it('should call deconstruct and emit controller event', function(done) {
 
@@ -163,8 +166,10 @@ describe('Ticket', function(){
       });
       
       bt.handle(t);
+      t.stopTimeout();
 
     });
+  
 
     it('should run function and emit view event', function(done) {
 
@@ -204,18 +209,21 @@ describe('Ticket', function(){
 
     });
 
-
+    
     it('throw on wrong response', function() {
 
       r.getFunction = function(){ return false; };
-
       (function(){
-        bt.handle(t);  
+        try {
+          bt.handle(t);    
+        } catch(err) {
+          t.stopTimeout();
+          throw err;
+        }        
       }).should.throw();
       
-
     });
-
+  
   });
 
   describe('#normalize()', function(){

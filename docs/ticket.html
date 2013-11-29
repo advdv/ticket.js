@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><title>ticket</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="ticket"><meta name="groc-project-path" content="src/ticket.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/ticket.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./transit.js&#39;</span><span class="p">);</span>
-<span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;bluebird&quot;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+<!DOCTYPE html><html lang="en"><head><title>ticket</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="ticket"><meta name="groc-project-path" content="src/ticket.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/ticket.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./transit.js&#39;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>The ticket instance takes an single argument in the browser environment; the browser window</p>
 
@@ -8,8 +7,9 @@
 <ul>
 <li><p><strong>emmitter must be an object.</strong><br/>(The event emitter that emits the kernel events)</p></li>
 <li><p><strong>resolver must be a Resolver.</strong><br/>(the object responsible for resolving the callable from the transition)</p></li>
+<li><p><strong>the must be a Promixe.</strong><br/>(promise library)</p></li>
 <li><p><strong>context is optional and can be a DOMWindow or an express.</strong><br/>(the window on the client &amp; express app on the server)</p></li>
-</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">emitter</span><span class="p">,</span> <span class="nx">resolver</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">emitter</span><span class="p">,</span> <span class="nx">resolver</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
   <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
 
 <p>The the context in which we are running, on the server this is server instance
@@ -106,7 +106,7 @@ server the request/res object</p>
       <span class="k">if</span><span class="p">(</span><span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
         <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[SERVER] normalize() expects second arguments to be an res object with a statusCode, received: &#39;</span><span class="o">+</span> <span class="nx">req</span><span class="p">);</span>
 
-      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">);</span>
 
     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
 
@@ -115,7 +115,7 @@ server the request/res object</p>
         <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] normalize() expects argument to be an DOMEvent, received:&#39;</span> <span class="o">+</span> <span class="nx">e</span><span class="p">);</span>
       <span class="p">}</span>
 
-      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">);</span>
 
     <span class="p">}</span>
 

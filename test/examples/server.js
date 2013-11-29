@@ -16,7 +16,9 @@ emitter.on('transit.start', function(t){
   //some routing layer, call something like router.match(url)
   if(t.url === '/hello') {
     t.setAttribute('_controller', function() {
-      this.render('hello world!');
+      
+
+      
     });
   }
 
