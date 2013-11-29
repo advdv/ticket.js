@@ -28,6 +28,15 @@ describe('Transit', function(){
     t.getAttribute('test').should.equal('replace');
     t.getAttribute('new').should.equal('new');
 
+    t.addAttributes({
+      test: 'replace2',
+      extra: 'extra'
+    });
+
+    t.getAttribute('test').should.equal('replace2');
+    t.getAttribute('new').should.equal('new');
+    t.getAttribute('extra').should.equal('extra');
+
   });
 
 

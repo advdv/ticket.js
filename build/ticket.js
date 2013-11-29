@@ -256,6 +256,18 @@ var Transit = function Transit(url, Promise, method) {
   };
 
   /**
+   * Add several attributes to the transit, does not remove existing
+   * attributes but does overwrite
+   * 
+   * @param {object} attrs the attributes
+   */
+  self.addAttributes = function addAttributes(attrs) {
+    Object.keys(attrs).forEach(function(key){
+      attributes[key] = attrs[key];
+    });
+  };
+
+  /**
    * Set transit specific attribut
    *
    * @method setAttribute()

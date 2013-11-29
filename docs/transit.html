@@ -46,6 +46,19 @@ attributes</p>
 <li><strong>attrs must be an object.</strong><br/>(the new attributes)</li>
 </ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setAttributes</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setAttributes</span><span class="p">(</span><span class="nx">attrs</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">attributes</span> <span class="o">=</span> <span class="nx">attrs</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Add several attributes to the transit, does not remove existing
+attributes but does overwrite</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>attrs must be an object.</strong><br/>(the attributes)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">addAttributes</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">addAttributes</span><span class="p">(</span><span class="nx">attrs</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">attrs</span><span class="p">).</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">key</span><span class="p">){</span>
+      <span class="nx">attributes</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">attrs</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span>
+    <span class="p">});</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setAttribute()</span></p>
 
 <p>Set transit specific attribut</p>
