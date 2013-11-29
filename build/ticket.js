@@ -185,7 +185,7 @@ var Transit = function Transit(url, Promise, method) {
    */
   self.startTimeout = function startTimeout() {
     timer = setTimeout(function(){
-      throw new Error('Controller for transit to url "' + self.url + '" exceeded maximum execution time of: "'+self.MAX_EXECUTION_TIME+'ms", did the controller call render?');
+      runResolver.reject('Controller for transit to url "' + self.url + '" exceeded maximum execution time of: "'+self.MAX_EXECUTION_TIME+'ms", did the controller call render?');
     }, self.MAX_EXECUTION_TIME);
   };
 

@@ -106,6 +106,20 @@ describe('Transit', function(){
 
     });
 
+    it("should reject on timeout", function(done){
+      t.fn = function() {};
+      t.MAX_EXECUTION_TIME = 100;
+      var p = t.run();
+
+      p.then(function(){
+        //it should reject
+      },function(reason){
+        reason.indexOf('maximum execution time').should.not.equal(-1);
+        done();
+      });
+
+    });
+
 
   });
 
