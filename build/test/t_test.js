@@ -5690,10 +5690,10 @@ var Transit = function Transit(url, Promise, method) {
  */
 Transit.createFromEvent = function(e, Promise) {
 
-  if(e.currentTarget.hasAttribute('href') === false) 
-    throw new Error('[CLIENT] normalize() expected clicked element "'+e.currentTarget+'" to have an href attribute.');
+  if(e.target.hasAttribute === undefined || e.target.hasAttribute('href') === false) 
+    throw new Error('[CLIENT] normalize() expected clicked element "'+e.target+'" to have an href attribute.');
 
-  var url = e.currentTarget.getAttribute('href');
+  var url = e.target.getAttribute('href');
   if(url.indexOf('#') !== -1) {
     url = url.substring(url.indexOf('#')+1);
   }
