@@ -1,6 +1,6 @@
 {
   "name": "ticket.js",
-  "version": "0.2.2",
+  "version": "0.2.8",
   "description": "A application kernel that abstracts express.js request handling and browser href click events into a common event interface for isomorphic purposes",
   "main": "index.js",
   "scripts": {
@@ -43,6 +43,6 @@
   },
   "dependencies": {
     "eventemitter2": "~0.4.13",
-    "bluebird": "~0.10.3-0"
+    "when": "~2.6.0"
   }
 }

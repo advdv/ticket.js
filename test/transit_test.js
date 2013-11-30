@@ -2,7 +2,7 @@
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 
-var Promise = require("bluebird");
+var Promise = require("when");
 var sinon = require('sinon');
 
 describe('Transit', function(){
@@ -78,7 +78,7 @@ describe('Transit', function(){
       });
 
       var p = t.run();  
-      p.should.be.an.instanceOf(Promise);
+      p.then.should.be.an.instanceOf(Function); // promises/A+
       
       p.then(function(){        
         t.render.callCount.should.equal(1);
@@ -166,7 +166,7 @@ describe('Transit', function(){
 
       t.newState = new State('hello world');
       var p = t.construct();
-      p.should.be.an.instanceOf(Promise);
+      p.then.should.be.an.instanceOf(Function); // promises/A+
     });
 
   });

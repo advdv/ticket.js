@@ -4,7 +4,7 @@ var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 var Resolver = require('../src/resolver.js');
 
-var Promise = require("bluebird");
+var Promise = require("when");
 var Emitter = require('eventemitter2').EventEmitter2;
 
 var express = require('express');
@@ -200,12 +200,11 @@ describe('Ticket', function(){
 
       e.on('transit.end', function(t){
         t.should.be.an.instanceOf(Transit);
-
         done();
       });
 
       var ended = bt.handle(t);
-      ended.should.be.an.instanceOf(Promise);
+      ended.then.should.be.an.instanceOf(Function); //duck type promises/A+ 
 
     });
 
