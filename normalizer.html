@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><title>normalizer</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="normalizer"><meta name="groc-project-path" content="src/normalizer.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/normalizer.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./transit.js&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">Normalizer</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Normalizer</span><span class="p">(</span><span class="nx">Promise</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Creates transit instances from an browser event</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>e must be a DOMEvent.</strong><br/>(the event)</li>
+</ul>
+
+<p><strong>Returns a Transit</strong><br/>(the transit instance)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">normalizeBrowserEvent</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">normalizeBrowserEvent</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">hasAttribute</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">||</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">hasAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span> 
+      <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+
+    <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="o">!==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">url</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">substring</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
+
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Creating transit from an express req res</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>req must be a req.</strong><br/>(express request)</p></li>
+<li><p><strong>res must be a res.</strong><br/>(express response)</p></li>
+</ul>
+
+<p><strong>Returns a Transit</strong><br/>(The transit instance)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">normalizeServerRequest</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">normalizeServerRequest</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
+  <span class="p">};</span>
+
+<span class="p">};</span>
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">Normalizer</span><span class="p">;</span></div></div></div></div></body></html>
