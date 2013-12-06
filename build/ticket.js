@@ -23,10 +23,11 @@ var Transit = require('./transit.js');
  *
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
+ * @param {Normalizer} is able to normalize browser events and request objects into an new transit
  * @param {Promixe} the promise library
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, Promise, context) {
+var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   var self = this;
 
   /**
@@ -105,7 +106,11 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
       });
     } else {
       self.context.document.onclick = function(e) {      
-        self.handle( self.normalize(e) );
+        var t = self.normalize(e);
+        if(t === false || t === undefined)
+          return;
+
+        self.handle(t);
       };
     }
 
@@ -136,7 +141,7 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
       if(res.statusCode === undefined)
         throw new Error('[SERVER] normalize() expects second arguments to be an res object with a statusCode, received: '+ req);
 
-      return Transit.createFromReq(req, res, Promise);
+      return normalizer.normalizeServerRequest(req, res);
 
     } else {
 
@@ -145,7 +150,7 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
         throw new Error('[CLIENT] normalize() expects argument to be an DOMEvent, received:' + e);
       }
 
-      return Transit.createFromEvent(e, Promise);
+      return normalizer.normalizeBrowserEvent(e);
 
     }
 
@@ -441,42 +446,6 @@ var Transit = function Transit(url, Promise, method) {
   };
 
 };
-
-
-/**
- * Static factory method for creating transit instances from an browser event
- * 
- * @param  {DOMEvent} e the event
- * @return {Transit}   the transit instance
- */
-Transit.createFromEvent = function(e, Promise) {
-
-  if(e.target.hasAttribute === undefined || e.target.hasAttribute('href') === false) 
-    throw new Error('[CLIENT] normalize() expected clicked element "'+e.target+'" to have an href attribute.');
-
-  var url = e.target.getAttribute('href');
-  if(url.indexOf('#') !== -1) {
-    url = url.substring(url.indexOf('#')+1);
-  }
-
-  var t = new Transit(url, Promise);
-  return t;
-};
-
-/**
- * Stacit factory method fro creating transit from an express req res
- *   
- * @param  {req} req express request
- * @param  {res} res express response
- * @return {Transit}     The transit instance
- */
-Transit.createFromReq = function(req, res, Promise) {
-  var t = new Transit(req.url, Promise, req.method);
-
-  return t;
-};
-
-
 
 module.exports = Transit;
 },{"./state.js":2}]},{},[1])

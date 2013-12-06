@@ -224,45 +224,6 @@ the given arguments</p>
     
   <span class="p">};</span>
 
-<span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
-
-<p>Static factory method for creating transit instances from an browser event</p>
-
-<p>Parameters:</p>
-
-<ul>
-<li><strong>e must be a DOMEvent.</strong><br/>(the event)</li>
-</ul>
-
-<p><strong>Returns a Transit</strong><br/>(the transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromEvent</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">)</span> <span class="p">{</span>
-
-  <span class="k">if</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">hasAttribute</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">||</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">hasAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span> 
-    <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;[CLIENT] normalize() expected clicked element &quot;&#39;</span><span class="o">+</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="o">+</span><span class="s1">&#39;&quot; to have an href attribute.&#39;</span><span class="p">);</span>
-
-  <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;href&#39;</span><span class="p">);</span>
-  <span class="k">if</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="o">!==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">url</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">substring</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">);</span>
-  <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
-<span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
-
-<p>Stacit factory method fro creating transit from an express req res</p>
-
-<p>Parameters:</p>
-
-<ul>
-<li><p><strong>req must be a req.</strong><br/>(express request)</p></li>
-<li><p><strong>res must be a res.</strong><br/>(express response)</p></li>
-</ul>
-
-<p><strong>Returns a Transit</strong><br/>(The transit instance)</p></div></div><div class="code"><div class="wrapper"><span class="nx">Transit</span><span class="p">.</span><span class="nx">createFromReq</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">);</span>
-
-  <span class="k">return</span> <span class="nx">t</span><span class="p">;</span>
 <span class="p">};</span>
-
-
 
 <span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">Transit</span><span class="p">;</span></div></div></div></div></body></html>

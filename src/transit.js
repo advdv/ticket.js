@@ -282,40 +282,4 @@ var Transit = function Transit(url, Promise, method) {
 
 };
 
-
-/**
- * Static factory method for creating transit instances from an browser event
- * 
- * @param  {DOMEvent} e the event
- * @return {Transit}   the transit instance
- */
-Transit.createFromEvent = function(e, Promise) {
-
-  if(e.target.hasAttribute === undefined || e.target.hasAttribute('href') === false) 
-    throw new Error('[CLIENT] normalize() expected clicked element "'+e.target+'" to have an href attribute.');
-
-  var url = e.target.getAttribute('href');
-  if(url.indexOf('#') !== -1) {
-    url = url.substring(url.indexOf('#')+1);
-  }
-
-  var t = new Transit(url, Promise);
-  return t;
-};
-
-/**
- * Stacit factory method fro creating transit from an express req res
- *   
- * @param  {req} req express request
- * @param  {res} res express response
- * @return {Transit}     The transit instance
- */
-Transit.createFromReq = function(req, res, Promise) {
-  var t = new Transit(req.url, Promise, req.method);
-
-  return t;
-};
-
-
-
 module.exports = Transit;

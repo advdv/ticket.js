@@ -3,6 +3,7 @@ var Ticket = require('../src/ticket.js');
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 var Resolver = require('../src/resolver.js');
+var Normalizer = require('../src/normalizer.js');
 
 var Promise = require("when");
 var Emitter = require('eventemitter2').EventEmitter2;
@@ -26,20 +27,21 @@ try {
 
 describe('Ticket', function(){
 
-  var st, bt, e, r;
+  var st, bt, e, r, n;
   beforeEach(function(){
 
     e = new Emitter();
     r = new Resolver();
+    n = new Normalizer(Promise);
 
     if(server) {
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, Promise, sctx);      
+      st = new Ticket(e, r, n, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, Promise, bctx);
+    bt = new Ticket(e, r, n, Promise, bctx);
 
   });
 
@@ -85,6 +87,17 @@ describe('Ticket', function(){
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(1);
       res.should.equal(bt);
+
+    });
+
+    it('should not call handle when normalize return false', function(){
+
+      sinon.stub(bt, 'normalize', function(){ return false; });
+      sinon.stub(bt, 'handle');
+      var res = bt.install();
+      bctx.document.onclick();
+      bt.normalize.callCount.should.equal(1);
+      bt.handle.callCount.should.equal(0);
 
     });
 
@@ -263,18 +276,29 @@ describe('Ticket', function(){
       var t = false;
 
       link.onclick = function(e) {
-        try {
-          t = bt.normalize(e);
-
-          failed = false;
-          e.preventDefault();
-        } catch(err) {
-          failed = true;
-        }
+          t = bt.normalize(e);  //should return false on no href
+          if(t === false) {
+            failed = false;
+          } else {
+            failed = true;
+          }
       };
 
       link.dispatchEvent(e);
-      failed.should.equal(true); // no href to be found
+      failed.should.equal(false); // no href to be found
+
+      link.onclick = function(e) {
+          t = bt.normalize(e);          
+          if(t === false) {
+            failed = true;
+          } else {
+            failed = false;
+          }
+
+          e.preventDefault();
+
+      };
+
 
       link.setAttribute('href', '/#/test');
       link.dispatchEvent(e);

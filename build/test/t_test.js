@@ -629,9 +629,9 @@ var process=require("__browserify_process");/** @license MIT License (c) copyrig
  *
  * @author Brian Cavalier
  * @author John Hann
- * @version 2.6.0
+ * @version 2.7.0
  */
-(function(define, global) { 'use strict';
+(function(define) { 'use strict';
 define(function (require) {
 
 	// Public API
@@ -693,116 +693,116 @@ define(function (require) {
 		this.inspect = inspect;
 	}
 
-	Promise.prototype = {
-		/**
-		 * Register handlers for this promise.
-		 * @param [onFulfilled] {Function} fulfillment handler
-		 * @param [onRejected] {Function} rejection handler
-		 * @param [onProgress] {Function} progress handler
-		 * @return {Promise} new Promise
-		 */
-		then: function(onFulfilled, onRejected, onProgress) {
-			/*jshint unused:false*/
-			var args, sendMessage;
+	var promisePrototype = Promise.prototype;
 
-			args = arguments;
-			sendMessage = this._message;
+	/**
+	 * Register handlers for this promise.
+	 * @param [onFulfilled] {Function} fulfillment handler
+	 * @param [onRejected] {Function} rejection handler
+	 * @param [onProgress] {Function} progress handler
+	 * @return {Promise} new Promise
+	 */
+	promisePrototype.then = function(onFulfilled, onRejected, onProgress) {
+		/*jshint unused:false*/
+		var args, sendMessage;
 
-			return _promise(function(resolve, reject, notify) {
-				sendMessage('when', args, resolve, notify);
-			}, this._status && this._status.observed());
-		},
+		args = arguments;
+		sendMessage = this._message;
 
-		/**
-		 * Register a rejection handler.  Shortcut for .then(undefined, onRejected)
-		 * @param {function?} onRejected
-		 * @return {Promise}
-		 */
-		otherwise: function(onRejected) {
-			return this.then(undef, onRejected);
-		},
+		return _promise(function(resolve, reject, notify) {
+			sendMessage('when', args, resolve, notify);
+		}, this._status && this._status.observed());
+	};
 
-		/**
-		 * Ensures that onFulfilledOrRejected will be called regardless of whether
-		 * this promise is fulfilled or rejected.  onFulfilledOrRejected WILL NOT
-		 * receive the promises' value or reason.  Any returned value will be disregarded.
-		 * onFulfilledOrRejected may throw or return a rejected promise to signal
-		 * an additional error.
-		 * @param {function} onFulfilledOrRejected handler to be called regardless of
-		 *  fulfillment or rejection
-		 * @returns {Promise}
-		 */
-		ensure: function(onFulfilledOrRejected) {
-			return typeof onFulfilledOrRejected === 'function'
-				? this.then(injectHandler, injectHandler)['yield'](this)
-				: this;
+	/**
+	 * Register a rejection handler.  Shortcut for .then(undefined, onRejected)
+	 * @param {function?} onRejected
+	 * @return {Promise}
+	 */
+	promisePrototype['catch'] = promisePrototype.otherwise = function(onRejected) {
+		return this.then(undef, onRejected);
+	};
 
-			function injectHandler() {
-				return resolve(onFulfilledOrRejected());
-			}
-		},
+	/**
+	 * Ensures that onFulfilledOrRejected will be called regardless of whether
+	 * this promise is fulfilled or rejected.  onFulfilledOrRejected WILL NOT
+	 * receive the promises' value or reason.  Any returned value will be disregarded.
+	 * onFulfilledOrRejected may throw or return a rejected promise to signal
+	 * an additional error.
+	 * @param {function} onFulfilledOrRejected handler to be called regardless of
+	 *  fulfillment or rejection
+	 * @returns {Promise}
+	 */
+	promisePrototype['finally'] = promisePrototype.ensure = function(onFulfilledOrRejected) {
+		return typeof onFulfilledOrRejected === 'function'
+			? this.then(injectHandler, injectHandler)['yield'](this)
+			: this;
 
-		/**
-		 * Terminate a promise chain by handling the ultimate fulfillment value or
-		 * rejection reason, and assuming responsibility for all errors.  if an
-		 * error propagates out of handleResult or handleFatalError, it will be
-		 * rethrown to the host, resulting in a loud stack track on most platforms
-		 * and a crash on some.
-		 * @param {function?} handleResult
-		 * @param {function?} handleError
-		 * @returns {undefined}
-		 */
-		done: function(handleResult, handleError) {
-			this.then(handleResult, handleError).otherwise(crash);
-		},
-
-		/**
-		 * Shortcut for .then(function() { return value; })
-		 * @param  {*} value
-		 * @return {Promise} a promise that:
-		 *  - is fulfilled if value is not a promise, or
-		 *  - if value is a promise, will fulfill with its value, or reject
-		 *    with its reason.
-		 */
-		'yield': function(value) {
-			return this.then(function() {
-				return value;
-			});
-		},
-
-		/**
-		 * Runs a side effect when this promise fulfills, without changing the
-		 * fulfillment value.
-		 * @param {function} onFulfilledSideEffect
-		 * @returns {Promise}
-		 */
-		tap: function(onFulfilledSideEffect) {
-			return this.then(onFulfilledSideEffect)['yield'](this);
-		},
-
-		/**
-		 * Assumes that this promise will fulfill with an array, and arranges
-		 * for the onFulfilled to be called with the array as its argument list
-		 * i.e. onFulfilled.apply(undefined, array).
-		 * @param {function} onFulfilled function to receive spread arguments
-		 * @return {Promise}
-		 */
-		spread: function(onFulfilled) {
-			return this.then(function(array) {
-				// array may contain promises, so resolve its contents.
-				return all(array, function(array) {
-					return onFulfilled.apply(undef, array);
-				});
-			});
-		},
-
-		/**
-		 * Shortcut for .then(onFulfilledOrRejected, onFulfilledOrRejected)
-		 * @deprecated
-		 */
-		always: function(onFulfilledOrRejected, onProgress) {
-			return this.then(onFulfilledOrRejected, onFulfilledOrRejected, onProgress);
+		function injectHandler() {
+			return resolve(onFulfilledOrRejected());
 		}
+	};
+
+	/**
+	 * Terminate a promise chain by handling the ultimate fulfillment value or
+	 * rejection reason, and assuming responsibility for all errors.  if an
+	 * error propagates out of handleResult or handleFatalError, it will be
+	 * rethrown to the host, resulting in a loud stack track on most platforms
+	 * and a crash on some.
+	 * @param {function?} handleResult
+	 * @param {function?} handleError
+	 * @returns {undefined}
+	 */
+	promisePrototype.done = function(handleResult, handleError) {
+		this.then(handleResult, handleError).otherwise(crash);
+	};
+
+	/**
+	 * Shortcut for .then(function() { return value; })
+	 * @param  {*} value
+	 * @return {Promise} a promise that:
+	 *  - is fulfilled if value is not a promise, or
+	 *  - if value is a promise, will fulfill with its value, or reject
+	 *    with its reason.
+	 */
+	promisePrototype['yield'] = function(value) {
+		return this.then(function() {
+			return value;
+		});
+	};
+
+	/**
+	 * Runs a side effect when this promise fulfills, without changing the
+	 * fulfillment value.
+	 * @param {function} onFulfilledSideEffect
+	 * @returns {Promise}
+	 */
+	promisePrototype.tap = function(onFulfilledSideEffect) {
+		return this.then(onFulfilledSideEffect)['yield'](this);
+	};
+
+	/**
+	 * Assumes that this promise will fulfill with an array, and arranges
+	 * for the onFulfilled to be called with the array as its argument list
+	 * i.e. onFulfilled.apply(undefined, array).
+	 * @param {function} onFulfilled function to receive spread arguments
+	 * @return {Promise}
+	 */
+	promisePrototype.spread = function(onFulfilled) {
+		return this.then(function(array) {
+			// array may contain promises, so resolve its contents.
+			return all(array, function(array) {
+				return onFulfilled.apply(undef, array);
+			});
+		});
+	};
+
+	/**
+	 * Shortcut for .then(onFulfilledOrRejected, onFulfilledOrRejected)
+	 * @deprecated
+	 */
+	promisePrototype.always = function(onFulfilledOrRejected, onProgress) {
+		return this.then(onFulfilledOrRejected, onFulfilledOrRejected, onProgress);
 	};
 
 	/**
@@ -1422,8 +1422,8 @@ define(function (require) {
 	//
 
 	var reduceArray, slice, fcall, nextTick, handlerQueue,
-		setTimeout, funcProto, call, arrayProto, monitorApi,
-		cjsRequire, MutationObserver, undef;
+		funcProto, call, arrayProto, monitorApi,
+		capturedSetTimeout, cjsRequire, MutationObs, undef;
 
 	cjsRequire = require;
 
@@ -1457,20 +1457,18 @@ define(function (require) {
 		handlerQueue = [];
 	}
 
-	// capture setTimeout to avoid being caught by fake timers
-	// used in time based tests
-	setTimeout = global.setTimeout;
-
 	// Allow attaching the monitor to when() if env has no console
 	monitorApi = typeof console !== 'undefined' ? console : when;
 
 	// Sniff "best" async scheduling option
 	// Prefer process.nextTick or MutationObserver, then check for
 	// vertx and finally fall back to setTimeout
-	/*global process*/
+	/*global process,document,setTimeout,MutationObserver,WebKitMutationObserver*/
 	if (typeof process === 'object' && process.nextTick) {
 		nextTick = process.nextTick;
-	} else if(MutationObserver = global.MutationObserver || global.WebKitMutationObserver) {
+	} else if(MutationObs =
+		(typeof MutationObserver === 'function' && MutationObserver) ||
+			(typeof WebKitMutationObserver === 'function' && WebKitMutationObserver)) {
 		nextTick = (function(document, MutationObserver, drainQueue) {
 			var el = document.createElement('div');
 			new MutationObserver(drainQueue).observe(el, { attributes: true });
@@ -1478,13 +1476,16 @@ define(function (require) {
 			return function() {
 				el.setAttribute('x', 'x');
 			};
-		}(document, MutationObserver, drainQueue));
+		}(document, MutationObs, drainQueue));
 	} else {
 		try {
 			// vert.x 1.x || 2.x
 			nextTick = cjsRequire('vertx').runOnLoop || cjsRequire('vertx').runOnContext;
 		} catch(ignore) {
-			nextTick = function(t) { setTimeout(t, 0); };
+			// capture setTimeout to avoid being caught by fake timers
+			// used in time based tests
+			capturedSetTimeout = setTimeout;
+			nextTick = function(t) { capturedSetTimeout(t, 0); };
 		}
 	}
 
@@ -1569,9 +1570,52 @@ define(function (require) {
 
 	return when;
 });
-})(typeof define === 'function' && define.amd ? define : function (factory) { module.exports = factory(require); }, this);
+})(typeof define === 'function' && define.amd ? define : function (factory) { module.exports = factory(require); });
 
 },{"__browserify_process":2}],5:[function(require,module,exports){
+var Transit = require('./transit.js');
+
+var Normalizer = function Normalizer(Promise) {
+  var self = this;
+
+/**
+ * Creates transit instances from an browser event
+ * 
+ * @param  {DOMEvent} e the event
+ * @return {Transit}   the transit instance
+ */
+  self.normalizeBrowserEvent = function normalizeBrowserEvent(e) {
+
+    if(e.target.hasAttribute === undefined || e.target.hasAttribute('href') === false) 
+      return false;
+
+    var url = e.target.getAttribute('href');
+    if(url.indexOf('#') !== -1) {
+      url = url.substring(url.indexOf('#')+1);
+    }
+
+    var t = new Transit(url, Promise);
+    return t;
+
+  };
+
+  /**
+   * Creating transit from an express req res
+   *   
+   * @param  {req} req express request
+   * @param  {res} res express response
+   * @return {Transit}     The transit instance
+   */
+  self.normalizeServerRequest = function normalizeServerRequest(req, res) {
+    var t = new Transit(req.url, Promise, req.method);
+
+    return t;
+  };
+
+};
+
+module.exports = Normalizer;
+},{"./transit.js":9}],6:[function(require,module,exports){
 var Resolver = function Resolver() {
   var self = this;
 
@@ -1617,7 +1661,7 @@ var Resolver = function Resolver() {
 };
 
 module.exports = Resolver;
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var State = function State(content) {
   var self = this;
 
@@ -1630,7 +1674,7 @@ var State = function State(content) {
 };
 
 module.exports = State;
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var Transit = require('./transit.js');
 
 /**
@@ -1638,10 +1682,11 @@ var Transit = require('./transit.js');
  *
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
+ * @param {Normalizer} is able to normalize browser events and request objects into an new transit
  * @param {Promixe} the promise library
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, Promise, context) {
+var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   var self = this;
 
   /**
@@ -1720,7 +1765,11 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
       });
     } else {
       self.context.document.onclick = function(e) {      
-        self.handle( self.normalize(e) );
+        var t = self.normalize(e);
+        if(t === false || t === undefined)
+          return;
+
+        self.handle(t);
       };
     }
 
@@ -1751,7 +1800,7 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
       if(res.statusCode === undefined)
         throw new Error('[SERVER] normalize() expects second arguments to be an res object with a statusCode, received: '+ req);
 
-      return Transit.createFromReq(req, res, Promise);
+      return normalizer.normalizeServerRequest(req, res);
 
     } else {
 
@@ -1760,7 +1809,7 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
         throw new Error('[CLIENT] normalize() expects argument to be an DOMEvent, received:' + e);
       }
 
-      return Transit.createFromEvent(e, Promise);
+      return normalizer.normalizeBrowserEvent(e);
 
     }
 
@@ -1772,7 +1821,7 @@ var Ticket = function Ticket(emitter, resolver, Promise, context) {
 };
 
 module.exports = Ticket;
-},{"./transit.js":8}],8:[function(require,module,exports){
+},{"./transit.js":9}],9:[function(require,module,exports){
 /* globals setTimeout, clearTimeout */
 var State = require('./state.js');
 
@@ -2057,49 +2106,14 @@ var Transit = function Transit(url, Promise, method) {
 
 };
 
-
-/**
- * Static factory method for creating transit instances from an browser event
- * 
- * @param  {DOMEvent} e the event
- * @return {Transit}   the transit instance
- */
-Transit.createFromEvent = function(e, Promise) {
-
-  if(e.target.hasAttribute === undefined || e.target.hasAttribute('href') === false) 
-    throw new Error('[CLIENT] normalize() expected clicked element "'+e.target+'" to have an href attribute.');
-
-  var url = e.target.getAttribute('href');
-  if(url.indexOf('#') !== -1) {
-    url = url.substring(url.indexOf('#')+1);
-  }
-
-  var t = new Transit(url, Promise);
-  return t;
-};
-
-/**
- * Stacit factory method fro creating transit from an express req res
- *   
- * @param  {req} req express request
- * @param  {res} res express response
- * @return {Transit}     The transit instance
- */
-Transit.createFromReq = function(req, res, Promise) {
-  var t = new Transit(req.url, Promise, req.method);
-
-  return t;
-};
-
-
-
 module.exports = Transit;
-},{"./state.js":6}],9:[function(require,module,exports){
+},{"./state.js":7}],10:[function(require,module,exports){
 /* global window */
 var Ticket = require('../src/ticket.js');
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 var Resolver = require('../src/resolver.js');
+var Normalizer = require('../src/normalizer.js');
 
 var Promise = require("when");
 var Emitter = require('eventemitter2').EventEmitter2;
@@ -2123,20 +2137,21 @@ try {
 
 describe('Ticket', function(){
 
-  var st, bt, e, r;
+  var st, bt, e, r, n;
   beforeEach(function(){
 
     e = new Emitter();
     r = new Resolver();
+    n = new Normalizer(Promise);
 
     if(server) {
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, Promise, sctx);      
+      st = new Ticket(e, r, n, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, Promise, bctx);
+    bt = new Ticket(e, r, n, Promise, bctx);
 
   });
 
@@ -2182,6 +2197,17 @@ describe('Ticket', function(){
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(1);
       res.should.equal(bt);
+
+    });
+
+    it('should not call handle when normalize return false', function(){
+
+      sinon.stub(bt, 'normalize', function(){ return false; });
+      sinon.stub(bt, 'handle');
+      var res = bt.install();
+      bctx.document.onclick();
+      bt.normalize.callCount.should.equal(1);
+      bt.handle.callCount.should.equal(0);
 
     });
 
@@ -2360,18 +2386,29 @@ describe('Ticket', function(){
       var t = false;
 
       link.onclick = function(e) {
-        try {
-          t = bt.normalize(e);
-
-          failed = false;
-          e.preventDefault();
-        } catch(err) {
-          failed = true;
-        }
+          t = bt.normalize(e);  //should return false on no href
+          if(t === false) {
+            failed = false;
+          } else {
+            failed = true;
+          }
       };
 
       link.dispatchEvent(e);
-      failed.should.equal(true); // no href to be found
+      failed.should.equal(false); // no href to be found
+
+      link.onclick = function(e) {
+          t = bt.normalize(e);          
+          if(t === false) {
+            failed = true;
+          } else {
+            failed = false;
+          }
+
+          e.preventDefault();
+
+      };
+
 
       link.setAttribute('href', '/#/test');
       link.dispatchEvent(e);
@@ -2433,5 +2470,5 @@ describe('Ticket', function(){
 
 
 
-},{"../src/resolver.js":5,"../src/state.js":6,"../src/ticket.js":7,"../src/transit.js":8,"eventemitter2":3,"express":1,"sinon":1,"supertest":1,"when":4,"zombie":1}]},{},[9])
+},{"../src/normalizer.js":5,"../src/resolver.js":6,"../src/state.js":7,"../src/ticket.js":8,"../src/transit.js":9,"eventemitter2":3,"express":1,"sinon":1,"supertest":1,"when":4,"zombie":1}]},{},[10])
 ;

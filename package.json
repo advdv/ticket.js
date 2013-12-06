@@ -1,6 +1,6 @@
 {
   "name": "ticket.js",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "A application kernel that abstracts express.js request handling and browser href click events into a common event interface for isomorphic purposes",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "grunt-contrib-jshint": "~0.7.1",
     "grunt-browserify": "~1.2.11",
     "grunt-contrib-watch": "~0.5.3",
+    "grunt-gh-pages": "~0.9.0",
     "grunt-mocha-test": "~0.7.0",
     "grunt-shell": "~0.6.0",
     "mocha": "~1.14.0",
@@ -43,6 +44,6 @@
   },
   "dependencies": {
     "eventemitter2": "~0.4.13",
-    "when": "~2.6.0"
+    "when": "~2.7.0"
   }
 }
