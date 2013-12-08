@@ -11,7 +11,7 @@
 <li><p><strong>is must be a Normalizer.</strong><br/>(able to normalize browser events and request objects into an new transit)</p></li>
 <li><p><strong>the must be a Promise.</strong><br/>(bluebird promise lib)</p></li>
 <li><p><strong>context is optional and can be a DOMWindow or an express.</strong><br/>(the window on the client &amp; express app on the server)</p></li>
-</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">emitter</span><span class="p">,</span> <span class="nx">resolver</span><span class="p">,</span> <span class="nx">normalizer</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Ticket</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Ticket</span><span class="p">(</span><span class="nx">resolver</span><span class="p">,</span> <span class="nx">normalizer</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
   <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
 
 <p>The the context in which we are running, on the server this is server instance
@@ -22,16 +22,6 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
 <p><strong>Returns a Boolean</strong></p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">isServer</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">return</span> <span class="p">((</span><span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span> <span class="o">?</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="o">:</span> <span class="p">(</span><span class="kc">false</span><span class="p">));</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method handle()</span></p>
-
-<p>Handle the normalized transit throughout its livecycle</p>
-
-<p>Parameters:</p>
-
-<ul>
-<li><strong>transit must be a Transit.</strong><br/>(the transit)</li>
-</ul>
-
-<p><strong>Returns a Promise</strong><br/>(resolves when transit is handled)</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method handle()</span></p>
 
 <p>Handle the normalized transit throughout its livecycle</p>
 
@@ -69,6 +59,7 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
 
     <span class="c1">//when everything is finished, resolve it with new state</span>
     <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">started</span><span class="p">,</span> <span class="nx">ended</span><span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+      <span class="nx">transit</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span> <span class="c1">//let transit emit end event</span>
 
       <span class="c1">//when start and end it complete resolve the transit</span>
       <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
@@ -111,18 +102,7 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
         <span class="nx">doHandle</span><span class="p">(</span><span class="nx">t</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
       <span class="p">};</span>
     <span class="p">}</span>
-  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
-
-<p>Install onto the context, in the browser this means listening to click
-events, on the server this means installing middleware</p>
-
-<p>Parameters:</p>
-
-<ul>
-<li><strong>fn must be a Function.</strong><br/>(the funtion that receives the transit handler)</li>
-</ul>
-
-<p><strong>Returns a Ticket</strong><br/>(self)</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method normalize()</span></p>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method normalize()</span></p>
 
 <p>Normalize the event for each environment, in the browser this is the click event, on the 
 server the request/res object</p>
@@ -162,9 +142,6 @@ server the request/res object</p>
     <span class="p">}</span>
 
   <span class="p">};</span>
-
-
-
 
 <span class="p">};</span>
 
