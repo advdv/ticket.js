@@ -141,8 +141,18 @@ describe('Ticket', function(){
 
   describe('#handle()', function(){
 
-    var t;
+    var t, onStart, onController, onView, onEnd;
     beforeEach(function(){
+      onStart = 0;
+      onController = 0;
+      onView = 0;
+      onEnd = 0;
+
+      e.on('transit.start', function(){ onStart+=1;  });
+      e.on('transit.controller', function(){ onController+=1;  });
+      e.on('transit.view', function(){ onView+=1;  });
+      e.on('transit.end', function(){ onEnd+=1;  });
+
       t = new Transit('/bogus', Promise);
       t.MAX_EXECUTION_TIME = 100; //lower it to speedup test
 
@@ -151,11 +161,15 @@ describe('Ticket', function(){
       });
     });
 
-    it('should return an promise & throw a ControllerNotFound exception', function(done){
+    it('should trigger event & return an promise & throw a ControllerNotFound exception', function(done){
 
       var handled = bt.handle(t);
       handled.then.should.be.an.instanceOf(Function);
       handled.catch(Errors.ControllerNotFound, function(err){
+        onStart.should.equal(1);
+        onController.should.equal(1);
+        onView.should.equal(0);
+        onEnd.should.equal(0);
         done();
       });
   
@@ -164,15 +178,17 @@ describe('Ticket', function(){
     it('should show exceptions of the controller', function(done){
 
       t.setFunction(function(){
-
         arguments.length.should.equal(1);
         throw new Error('deliberate controller error');
-
       });
 
       var handled = bt.handle(t);
       handled.catch(Error, function(err){
         err.message.should.equal('deliberate controller error');
+        onStart.should.equal(1);
+        onController.should.equal(1);
+        onView.should.equal(0);
+        onEnd.should.equal(0);
         done();
       });
 
@@ -186,6 +202,10 @@ describe('Ticket', function(){
 
       var handled = bt.handle(t);      
       handled.catch(Errors.ControllerTimeout, function(err){
+        onStart.should.equal(1);
+        onController.should.equal(1);
+        onView.should.equal(0);
+        onEnd.should.equal(0);
         done();
       });
 
@@ -194,13 +214,15 @@ describe('Ticket', function(){
     it('should throw invalid response', function(done){
 
       t.setFunction(function(t){
-
         t.render('aaa'); //actually attempt render something
-
       });
 
       var handled = bt.handle(t);      
       handled.catch(Errors.ControllerReturnedInvalid, function(err){
+        onStart.should.equal(1);
+        onController.should.equal(1);
+        onView.should.equal(1);
+        onEnd.should.equal(0);
         done();
       });
 
@@ -221,6 +243,11 @@ describe('Ticket', function(){
 
         arguments.length.should.equal(1);
         arguments[0].should.equal(res);
+
+        onStart.should.equal(1);
+        onController.should.equal(1);
+        onView.should.equal(1);
+        onEnd.should.equal(1);
         done();
 
       });
