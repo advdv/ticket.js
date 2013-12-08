@@ -138,24 +138,6 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
       },
       "depth": 1,
       "outline": []
-    }, {
-      "type": "file",
-      "data": {
-        "language": {
-          "nameMatchers": [".js"],
-          "pygmentsLexer": "javascript",
-          "singleLineComment": ["//"],
-          "multiLineComment": ["/*", "*", "*/"],
-          "ignorePrefix": "}",
-          "name": "JavaScript"
-        },
-        "sourcePath": "/Users/advanderveer/Documents/Personal/Javascript/station.js/ticket.js/src/transit_bak.js",
-        "projectPath": "src/transit_bak.js",
-        "targetPath": "transit_bak",
-        "title": "transit_bak"
-      },
-      "depth": 1,
-      "outline": []
     }
   ];
 
