@@ -71,8 +71,12 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
       <span class="c1">//when everything is finished, resolve it with new state</span>
       <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">started</span><span class="p">,</span> <span class="nx">ended</span><span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
 
-        <span class="c1">//[EMIT] for end logic</span>
-        <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+        <span class="k">try</span> <span class="p">{</span>
+          <span class="c1">//[EMIT] for end logic</span>
+          <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+        <span class="p">}</span>
 
         <span class="nx">resolve</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
       <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>

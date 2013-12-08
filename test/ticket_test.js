@@ -250,6 +250,29 @@ describe('Ticket', function(){
     });
 
 
+
+
+    it('should throw exception in listener', function(done){
+
+      e.on('transit.end', function(){
+        throw new Error('deliberate end exception');
+      });
+
+      var res = new State('aaa');
+      t.setFunction(function(t){
+
+        t.render(res); //actually attempt render new state
+
+      });
+
+      var handled = bt.handle(t);      
+      handled.catch(Error, function(err){
+        err.message.should.equal('deliberate end exception');
+        done();
+      });
+
+    });
+
     it('should succeed', function(done){
 
       var res = new State('aaa');
@@ -272,6 +295,9 @@ describe('Ticket', function(){
         done();
 
       });
+
+
+
 
     });
 

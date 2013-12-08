@@ -154,8 +154,12 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       //when everything is finished, resolve it with new state
       Promise.all([started, ended]).then(function(){
 
-        //[EMIT] for end logic
-        emitter.emit('transit.end', transit);
+        try {
+          //[EMIT] for end logic
+          emitter.emit('transit.end', transit);
+        } catch(err) {
+          reject(err);
+        }
 
         resolve(transit.to);
       }, reject);
