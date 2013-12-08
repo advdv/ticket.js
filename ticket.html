@@ -31,57 +31,84 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
 <li><strong>transit must be a Transit.</strong><br/>(the transit)</li>
 </ul>
 
+<p><strong>Returns a Promise</strong><br/>(resolves when transit is handled)</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method handle()</span></p>
+
+<p>Handle the normalized transit throughout its livecycle</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>transit must be a Transit.</strong><br/>(the transit)</li>
+</ul>
+
 <p><strong>Returns a Promise</strong><br/>(resolves when transit is handled)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">handle</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">){</span>
+    <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">deferred</span><span class="p">;</span>
 
-      <span class="c1">//[EMIT] for start logic</span>
-      <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.start&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+    <span class="c1">//deconstruct state</span>
+    <span class="kd">var</span> <span class="nx">started</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">start</span><span class="p">();</span>
 
-      <span class="c1">//deconstruct state</span>
-      <span class="kd">var</span> <span class="nx">started</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">start</span><span class="p">();</span>
 
-      <span class="c1">//use the resolver to get scope, args and fn</span>
-      <span class="nx">transit</span><span class="p">.</span><span class="nx">setScope</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getScope</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
-      <span class="nx">transit</span><span class="p">.</span><span class="nx">setArguments</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getArguments</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
-      <span class="k">if</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">fn</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span>
-        <span class="nx">transit</span><span class="p">.</span><span class="nx">setFunction</span><span class="p">(</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getFunction</span><span class="p">(</span><span class="nx">transit</span><span class="p">)</span> <span class="p">);</span>
+    <span class="nx">transit</span><span class="p">.</span><span class="nx">controller</span><span class="p">.</span><span class="nx">scope</span> <span class="o">=</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getScope</span><span class="p">(</span><span class="nx">transit</span><span class="p">);</span>
+    <span class="nx">transit</span><span class="p">.</span><span class="nx">controller</span><span class="p">.</span><span class="nx">args</span> <span class="o">=</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getArguments</span><span class="p">(</span><span class="nx">transit</span><span class="p">);</span>
+      <span class="k">if</span><span class="p">(</span><span class="k">typeof</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">controller</span><span class="p">.</span><span class="nx">fn</span> <span class="o">!==</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span>
+        <span class="nx">transit</span><span class="p">.</span><span class="nx">controller</span><span class="p">.</span><span class="nx">fn</span> <span class="o">=</span> <span class="nx">resolver</span><span class="p">.</span><span class="nx">getFunction</span><span class="p">(</span><span class="nx">transit</span><span class="p">);</span>
 
-      <span class="c1">//[DELEGATE] for just before controller logic</span>
-      <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.controller&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+    <span class="c1">//@todo resolve using resolver</span>
 
-      <span class="c1">//reject when controller run takes to long</span>
-      <span class="kd">var</span> <span class="nx">timer</span> <span class="o">=</span> <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
-        <span class="nx">reject</span><span class="p">(</span><span class="k">new</span> <span class="nx">Errors</span><span class="p">.</span><span class="nx">ControllerTimeout</span><span class="p">(</span><span class="s1">&#39;Controller for transit to url &quot;&#39;</span> <span class="o">+</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">url</span> <span class="o">+</span> <span class="s1">&#39;&quot; exceeded maximum execution time of: &quot;&#39;</span><span class="o">+</span><span class="nx">transit</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span><span class="o">+</span><span class="s1">&#39;ms&quot;, did the controller call render?&#39;</span><span class="p">));</span>
-      <span class="p">},</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span><span class="p">);</span>
 
-      <span class="c1">//run controller</span>
-      <span class="kd">var</span> <span class="nx">ended</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">run</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
-        <span class="nx">clearTimeout</span><span class="p">(</span><span class="nx">timer</span><span class="p">);</span>
+    <span class="c1">//reject when controller run takes to long</span>
+    <span class="kd">var</span> <span class="nx">timer</span> <span class="o">=</span> <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+      <span class="nx">deferred</span><span class="p">.</span><span class="nx">reject</span><span class="p">(</span><span class="k">new</span> <span class="nx">Errors</span><span class="p">.</span><span class="nx">ControllerTimeout</span><span class="p">(</span><span class="s1">&#39;Controller for transit to url &quot;&#39;</span> <span class="o">+</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">url</span> <span class="o">+</span> <span class="s1">&#39;&quot; exceeded maximum execution time of: &quot;&#39;</span><span class="o">+</span><span class="nx">transit</span><span class="p">.</span><span class="nx">timeout</span><span class="o">+</span><span class="s1">&#39;ms&quot;, did the controller call render?&#39;</span><span class="p">));</span>
+    <span class="p">},</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">timeout</span><span class="p">);</span>
 
-        <span class="k">try</span> <span class="p">{</span>
-          <span class="c1">//[EMIT] for view logic</span>
-          <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.view&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>  
-        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
-          <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
-        <span class="p">}</span>
+    <span class="c1">//run controller</span>
+    <span class="kd">var</span> <span class="nx">ended</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">run</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+      <span class="nx">clearTimeout</span><span class="p">(</span><span class="nx">timer</span><span class="p">);</span>
 
-        <span class="k">return</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
-      <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
-
-      <span class="c1">//when everything is finished, resolve it with new state</span>
-      <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">started</span><span class="p">,</span> <span class="nx">ended</span><span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
-
-        <span class="k">try</span> <span class="p">{</span>
-          <span class="c1">//[EMIT] for end logic</span>
-          <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
-        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
-          <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
-        <span class="p">}</span>
-
-        <span class="nx">resolve</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
-      <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
-
+      <span class="c1">//when ran, end the transit</span>
+      <span class="k">return</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">){</span>
+      <span class="nx">deferred</span><span class="p">.</span><span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
     <span class="p">});</span>
+
+    <span class="c1">//when everything is finished, resolve it with new state</span>
+    <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">started</span><span class="p">,</span> <span class="nx">ended</span><span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+
+      <span class="c1">//when start and end it complete resolve the transit</span>
+      <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">){</span>
+      <span class="nx">deferred</span><span class="p">.</span><span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Install the kernel with the handler to handle transits</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>fn must be a Function.</strong><br/>(the transit handler)</li>
+</ul>
+
+<p><strong>Returns a [type]</strong><br/>([description])</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span><span class="p">())</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">){</span>
+        <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+
+        <span class="nx">fn</span><span class="p">(</span><span class="nx">t</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span>
+      <span class="p">});</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span><span class="p">.</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>      
+        <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+        <span class="k">if</span><span class="p">(</span><span class="nx">t</span> <span class="o">===</span> <span class="kc">false</span> <span class="o">||</span> <span class="nx">t</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
+          <span class="k">return</span><span class="p">;</span>
+
+        <span class="nx">fn</span><span class="p">(</span><span class="nx">t</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span>
+      <span class="p">};</span>
+    <span class="p">}</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>Install onto the context, in the browser this means listening to click
@@ -93,27 +120,7 @@ events, on the server this means installing middleware</p>
 <li><strong>fn must be a Function.</strong><br/>(the funtion that receives the transit handler)</li>
 </ul>
 
-<p><strong>Returns a Ticket</strong><br/>(self)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span><span class="p">())</span> <span class="p">{</span>
-      <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">){</span>
-        <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
-        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_res&#39;</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
-        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_req&#39;</span><span class="p">,</span> <span class="nx">req</span><span class="p">);</span>
-        <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_next&#39;</span><span class="p">,</span> <span class="nx">next</span><span class="p">);</span>
-        <span class="nx">fn</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">));</span>
-      <span class="p">});</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span><span class="p">.</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>      
-        <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
-        <span class="k">if</span><span class="p">(</span><span class="nx">t</span> <span class="o">===</span> <span class="kc">false</span> <span class="o">||</span> <span class="nx">t</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
-          <span class="k">return</span><span class="p">;</span>
-
-        <span class="nx">fn</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">));</span>
-      <span class="p">};</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="nx">self</span><span class="p">;</span>
-  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method normalize()</span></p>
+<p><strong>Returns a Ticket</strong><br/>(self)</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method normalize()</span></p>
 
 <p>Normalize the event for each environment, in the browser this is the click event, on the 
 server the request/res object</p>

@@ -1,0 +1,229 @@
+<!DOCTYPE html><html lang="en"><head><title>transit_bak</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="transit_bak"><meta name="groc-project-path" content="src/transit_bak.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/transit_bak.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>globals setTimeout, clearTimeout</p></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">State</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./state.js&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Errors</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./errors.js&#39;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>A new transition requires the url to transit to and the method</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>url must be a string.</strong><br/>(the url)</p></li>
+<li><p><strong>method must be a string.</strong><br/>(the method)</p></li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">method</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+  <span class="kd">var</span> <span class="nx">deferred</span> <span class="o">=</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">defer</span><span class="p">();</span>
+  <span class="kd">var</span> <span class="nx">attributes</span> <span class="o">=</span> <span class="p">{};</span>
+  <span class="kd">var</span> <span class="nx">timer</span><span class="p">;</span>
+  <span class="kd">var</span> <span class="nx">handle</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>Maximum time we wait for the controller to finish</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">MAX_EXECUTION_TIME</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The new url we are transitioning to</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">url</span> <span class="o">=</span> <span class="nx">url</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The HTTP method only relevant on server </p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">method</span> <span class="o">=</span> <span class="k">typeof</span> <span class="nx">method</span> <span class="o">!==</span> <span class="s1">&#39;undefined&#39;</span> <span class="o">?</span> <span class="nx">method</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span> <span class="o">:</span> <span class="s1">&#39;GET&#39;</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The function that acts as the controller</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>Scope in which the controller function will be executed</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">scope</span> <span class="o">=</span> <span class="nx">self</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The arguments that will be passed to the function</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">arguments</span> <span class="o">=</span> <span class="p">[];</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The result that is returned from the controller</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
+
+<p>The new state we Transition TO</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Set the promise that resolves when the transit completes</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>promise must be a [type].</strong><br/>([description])</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setHandle</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setHandle</span><span class="p">(</span><span class="nx">promise</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">handle</span> <span class="o">=</span> <span class="nx">promise</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setAttributes()</span></p>
+
+<p>Set the attributes container on this transit, overwrites existing
+attributes</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>attrs must be an object.</strong><br/>(the new attributes)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setAttributes</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setAttributes</span><span class="p">(</span><span class="nx">attrs</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">attributes</span> <span class="o">=</span> <span class="nx">attrs</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Add several attributes to the transit, does not remove existing
+attributes but does overwrite</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>attrs must be an object.</strong><br/>(the attributes)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">addAttributes</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">addAttributes</span><span class="p">(</span><span class="nx">attrs</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">attrs</span><span class="p">).</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">key</span><span class="p">){</span>
+      <span class="nx">attributes</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">attrs</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span>
+    <span class="p">});</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setAttribute()</span></p>
+
+<p>Set transit specific attribut</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>key must be a string.</strong><br/>(the attribute name)</p></li>
+<li><p><strong>val must be a mixed.</strong><br/>(the value of the attribute)</p></li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setAttribute</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setAttribute</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">val</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">attributes</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">val</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method getAttributes()</span></p>
+
+<p>Get all configured attributes of the transit</p>
+
+<p><strong>Returns an object</strong><br/>([description])</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">getAttributes</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">getAttributes</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">attributes</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method getAttribute()</span></p>
+
+<p>Return the attribute by its name</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>key must be a string.</strong><br/>(the attribut ename)</li>
+</ul>
+
+<p><strong>Returns a mixed</strong><br/>(key's content)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">getAttribute</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">getAttribute</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">attributes</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method hasAttribute()</span></p>
+
+<p>Tell wether the attribute is defined</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>key must be a string.</strong><br/>(the attribute key)</li>
+</ul>
+
+<p><strong>Returns a Boolean</strong></p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">hasAttribute</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">hasAttribute</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setScope()</span></p>
+
+<p>Set the scope in which the controller function will be executed</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>scope must be an object.</strong><br/>(the object)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setScope</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setScope</span><span class="p">(</span><span class="nx">scope</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">scope</span> <span class="o">=</span> <span class="nx">scope</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setFunction()</span></p>
+
+<p>The function that is called as the controller action, is expected
+to render something</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>fn must be a Function.</strong><br/>(the controller)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setFunction</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setFunction</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span> <span class="o">=</span> <span class="nx">fn</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setArguments()</span></p>
+
+<p>Set the arguments passed to the controller</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>args must be an Array.</strong><br/>(the arguments)</li>
+</ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">setArguments</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">setArguments</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">arguments</span> <span class="o">=</span> <span class="nx">args</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Start the deconstruct phase of the transit, ask the current
+state for the que</p>
+
+<p>TODO: retrieve from current state</p>
+
+<p><strong>Returns a Promise</strong><br/>(the promise that completes when the que is finished)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">start</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">start</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">que</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">(</span><span class="nx">que</span><span class="p">);</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Get the construct que from the new state and return a promise
+that resolves when each promise in the que is resolved</p>
+
+<p>TODO: Retrieve que from state</p>
+
+<p><strong>Returns a Promise</strong><br/>(the promise)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">end</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">end</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nx">Errors</span><span class="p">.</span><span class="nx">ControllerReturnedInvalid</span><span class="p">(</span><span class="s1">&#39;Transit &quot;to&quot; was not set from result, result is: &quot;&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">result</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
+
+    <span class="kd">var</span> <span class="nx">que</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">(</span><span class="nx">que</span><span class="p">);</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method run()</span></p>
+
+<p>Call the controller as the provided Fn, in the said scope using 
+the given arguments</p>
+
+<p><strong>Returns a Promise</strong><br/>(the promise that resolves when the controller is complete)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">run</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="nx">deferred</span><span class="p">.</span><span class="nx">promise</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">!==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nx">p</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">!==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nx">p</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">self</span><span class="p">.</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nx">Errors</span><span class="p">.</span><span class="nx">ControllerNotFound</span><span class="p">(</span><span class="s1">&#39;Unable to find the controller for path &quot;&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="o">+</span><span class="s1">&#39;&quot;. Maybe you forgot to add the matching route?&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">arguments</span><span class="p">))</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;Provided controller arguments should be an Array, received &quot;&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">arguments</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="k">typeof</span> <span class="nx">self</span><span class="p">.</span><span class="nx">scope</span> <span class="o">!==</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;Provided controller scope should be an Object, received &quot;&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">scope</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">//if controller returns something right away (sync), try to render it</span>
+    <span class="kd">var</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">fn</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">scope</span><span class="p">,</span> <span class="p">[</span><span class="nx">self</span><span class="p">]);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">res</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">p</span><span class="p">;</span>
+
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method render()</span></p>
+
+<p>Attempts to render the controllers result into the new state</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>result must be a mixed.</strong><br/>(the controllers retunred value)</li>
+</ul>
+
+<p><strong>Returns a State</strong><br/>(the new state or an exception)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">render</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">=</span> <span class="nx">result</span><span class="p">;</span>
+    
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">&#39;Did you provide a value when rendering? received: &quot;&#39;</span><span class="o">+</span><span class="nx">result</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">//duck type to see if if its an state object, if so set it right away</span>
+    <span class="k">if</span><span class="p">(</span><span class="k">typeof</span> <span class="nx">result</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">result</span><span class="p">.</span><span class="nx">content</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="nx">result</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+  <span class="p">};</span>
+
+<span class="p">};</span>
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">Transit</span><span class="p">;</span></div></div></div></div></body></html>
