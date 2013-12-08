@@ -82,17 +82,25 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
       <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>
 
     <span class="p">});</span>
-  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method install()</span></p>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>Install onto the context, in the browser this means listening to click
-events, on the server this means installing middleware</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">()</span> <span class="p">{</span>
+events, on the server this means installing middleware</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><strong>fn must be a Function.</strong><br/>(the funtion that receives the transit handler)</li>
+</ul>
+
+<p><strong>Returns a Ticket</strong><br/>(self)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">install</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">install</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">isServer</span><span class="p">())</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">){</span>
         <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">normalize</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
         <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_res&#39;</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
         <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_req&#39;</span><span class="p">,</span> <span class="nx">req</span><span class="p">);</span>
         <span class="nx">t</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s1">&#39;_next&#39;</span><span class="p">,</span> <span class="nx">next</span><span class="p">);</span>
-        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span>
+        <span class="nx">fn</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">));</span>
       <span class="p">});</span>
     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nb">document</span><span class="p">.</span><span class="nx">onclick</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>      
@@ -100,7 +108,7 @@ events, on the server this means installing middleware</p></div></div><div class
         <span class="k">if</span><span class="p">(</span><span class="nx">t</span> <span class="o">===</span> <span class="kc">false</span> <span class="o">||</span> <span class="nx">t</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span>
           <span class="k">return</span><span class="p">;</span>
 
-        <span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">);</span>
+        <span class="nx">fn</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">handle</span><span class="p">(</span><span class="nx">t</span><span class="p">));</span>
       <span class="p">};</span>
     <span class="p">}</span>
 
