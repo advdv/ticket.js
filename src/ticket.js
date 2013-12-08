@@ -96,17 +96,19 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   /**
    * Install onto the context, in the browser this means listening to click
    * events, on the server this means installing middleware
-   *
-   * @method install()
+   * 
+   * @param  {Function} fn the funtion that receives the transit handler
+   * @return {Ticket}      self
+   * @chainable
    */
-  self.install = function install() {
+  self.install = function install(fn) {
     if(self.isServer()) {
       self.context.use(function(req, res, next){
         var t = self.normalize(req, res);
         t.setAttribute('_res', res);
         t.setAttribute('_req', req);
         t.setAttribute('_next', next);
-        self.handle(t);
+        fn(self.handle(t));
       });
     } else {
       self.context.document.onclick = function(e) {      
@@ -114,7 +116,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         if(t === false || t === undefined)
           return;
 
-        self.handle(t);
+        fn(self.handle(t));
       };
     }
 

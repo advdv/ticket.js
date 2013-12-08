@@ -21,8 +21,6 @@ var Transit = function Transit(url, Promise, method) {
    */
   self.MAX_EXECUTION_TIME = 5000;
 
-
-
   /**
    * The new url we are transitioning to
    * @type {string}

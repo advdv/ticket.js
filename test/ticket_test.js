@@ -83,7 +83,9 @@ describe('Ticket', function(){
 
       sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
       sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
-      var res = bt.install();
+      var res = bt.install(function(p){
+        p.should.be.an.instanceOf(Promise);
+      });
       bctx.document.onclick();
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(1);
@@ -95,7 +97,10 @@ describe('Ticket', function(){
 
       sinon.stub(bt, 'normalize', function(){ return false; });
       sinon.stub(bt, 'handle');
-      var res = bt.install();
+      var res = bt.install(function(){
+
+
+      });
       bctx.document.onclick();
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(0);
@@ -120,7 +125,9 @@ describe('Ticket', function(){
             }
         );
 
-        st.install();
+        st.install(function(){
+
+        });
         
         request(sctx)
           .get('/bogus')
