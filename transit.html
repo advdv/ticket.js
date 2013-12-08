@@ -74,10 +74,6 @@ emits the end event and removes all listeners</p>
 
 <p><strong>Returns a [type]</strong><br/>([description])</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">terminate</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">terminate</span><span class="p">()</span> <span class="p">{</span>
     <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="nx">self</span><span class="p">);</span> <span class="c1">//let transit emit end event</span>
-    <span class="nx">emitter</span><span class="p">.</span><span class="nx">removeAllListeners</span><span class="p">(</span><span class="s1">&#39;transit.start.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
-    <span class="nx">emitter</span><span class="p">.</span><span class="nx">removeAllListeners</span><span class="p">(</span><span class="s1">&#39;transit.end.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
-    <span class="nx">emitter</span><span class="p">.</span><span class="nx">removeAllListeners</span><span class="p">(</span><span class="s1">&#39;transit.controller.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
-    <span class="nx">emitter</span><span class="p">.</span><span class="nx">removeAllListeners</span><span class="p">(</span><span class="s1">&#39;transit.view.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
 <p>Returns promise that completes when construction 
