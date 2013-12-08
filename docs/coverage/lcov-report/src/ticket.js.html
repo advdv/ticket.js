@@ -183,16 +183,16 @@
     <h1>Code coverage report for <span class="entity">src/ticket.js</span></h1>
     <h2>
         
-        Statements: <span class="metric">100% <small>(51 / 51)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Statements: <span class="metric">100% <small>(55 / 55)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
         Branches: <span class="metric">100% <small>(22 / 22)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
-        Functions: <span class="metric">100% <small>(9 / 9)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Functions: <span class="metric">100% <small>(11 / 11)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
-        Lines: <span class="metric">100% <small>(51 / 51)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Lines: <span class="metric">100% <small>(55 / 55)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
     </h2>
     <div class="path"><a href="../index.html">All files</a> &#187; <a href="index.html">src/</a> &#187; ticket.js</div>
@@ -344,7 +344,23 @@
 143
 144
 145
-146</td><td class="line-coverage"><span class="cline-any cline-yes">1</span>
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160</td><td class="line-coverage"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -384,37 +400,49 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">24</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5</span>
 <span class="cline-any cline-yes">5</span>
+<span class="cline-any cline-yes">5</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5</span>
 <span class="cline-any cline-yes">3</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4</span>
-<span class="cline-any cline-yes">4</span>
 <span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -489,7 +517,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1</span></td><td class="text"><pre class="prettyprint lang-js">var Transit = require('./transit.js');
+<span class="cline-any cline-yes">1</span></td><td class="text"><pre class="prettyprint lang-js">/* globals setTimeout, clearTimeout */
+var Transit = require('./transit.js');
+var Errors = require('./errors.js');
 &nbsp;
 /**
  * The ticket instance takes an single argument in the browser environment; the browser window
@@ -497,7 +527,7 @@
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
  * @param {Normalizer} is able to normalize browser events and request objects into an new transit
- * @param {Promixe} the promise library
+ * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client &amp; express app on the server
  */
 var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
@@ -526,41 +556,53 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    *
    * @method handle()
    * @param  {Transit} transit the transit
-   * @return {[type]}         [description]
+   * @return {Promise} resolves when transit is handled
    */
   self.handle = function handle(transit) {
+    return new Promise(function(resolve, reject){
 &nbsp;
-    emitter.emit('transit.start', transit);
+      //[EMIT] for start logic
+      emitter.emit('transit.start', transit);
 &nbsp;
-    //start deconstruction
-    var deconstructed = transit.deconstruct();
+      //deconstruct state
+      var started = transit.start();
 &nbsp;
-    transit.setScope( resolver.getScope(transit) );
-    transit.setArguments( resolver.getArguments(transit) );
-    if(transit.fn === false)
-      transit.setFunction( resolver.getFunction(transit) );
+      //use the resolver to get scope, args and fn
+      transit.setScope( resolver.getScope(transit) );
+      transit.setArguments( resolver.getArguments(transit) );
+      if(transit.fn === false)
+        transit.setFunction( resolver.getFunction(transit) );
 &nbsp;
-    //controller was found
-    emitter.emit('transit.controller', transit);
+      //[DELEGATE] for just before controller logic
+      emitter.emit('transit.controller', transit);
 &nbsp;
-    //call controller, then construct
-    var constructed = transit.run().then(function(res){
+      //reject when controller run takes to long
+      var timer = setTimeout(function(){
+        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
+      }, transit.MAX_EXECUTION_TIME);
 &nbsp;
-      //controller returned, new state can now be created
-      emitter.emit('transit.view', transit);
+      //run controller
+      var ended = transit.run().then(function(){
+        clearTimeout(timer);
 &nbsp;
-      //start construction
-      return transit.construct();
+        //[EMIT] for view logic
+        emitter.emit('transit.view', transit);
+&nbsp;
+        return transit.end();
+      }, reject);
+&nbsp;
+      //when everything is finished, resolve it with new state
+      Promise.all([started, ended]).then(function(){
+&nbsp;
+        //[EMIT] for end logic
+        emitter.emit('transit.end', transit);
+&nbsp;
+        resolve(transit.to);
+      }, reject);
+&nbsp;
     });
-&nbsp;
-    //when both deconstruction and construction has ended
-    var ended = Promise.all([deconstructed, constructed]);
-    ended.then(function(){
-      emitter.emit('transit.end', transit);
-    });
-&nbsp;
-    return ended;
   };
+&nbsp;
 &nbsp;
   /**
    * Install onto the context, in the browser this means listening to click
@@ -639,7 +681,7 @@ module.exports = Ticket;</pre></td></tr>
 
 </div>
 <div class="footer">
-    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Dec 06 2013 20:47:20 GMT+0100 (CET)</div>
+    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Dec 08 2013 13:27:58 GMT+0100 (CET)</div>
 </div>
 
 <script src="../prettify.js"></script>

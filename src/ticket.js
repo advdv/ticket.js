@@ -1,4 +1,6 @@
+/* globals setTimeout, clearTimeout */
 var Transit = require('./transit.js');
+var Errors = require('./errors.js');
 
 /**
  * The ticket instance takes an single argument in the browser environment; the browser window
@@ -6,7 +8,7 @@ var Transit = require('./transit.js');
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
  * @param {Normalizer} is able to normalize browser events and request objects into an new transit
- * @param {Promixe} the promise library
+ * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
 var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
@@ -35,41 +37,53 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    *
    * @method handle()
    * @param  {Transit} transit the transit
-   * @return {[type]}         [description]
+   * @return {Promise} resolves when transit is handled
    */
   self.handle = function handle(transit) {
+    return new Promise(function(resolve, reject){
 
-    emitter.emit('transit.start', transit);
+      //[EMIT] for start logic
+      emitter.emit('transit.start', transit);
 
-    //start deconstruction
-    var deconstructed = transit.deconstruct();
+      //deconstruct state
+      var started = transit.start();
 
-    transit.setScope( resolver.getScope(transit) );
-    transit.setArguments( resolver.getArguments(transit) );
-    if(transit.fn === false)
-      transit.setFunction( resolver.getFunction(transit) );
+      //use the resolver to get scope, args and fn
+      transit.setScope( resolver.getScope(transit) );
+      transit.setArguments( resolver.getArguments(transit) );
+      if(transit.fn === false)
+        transit.setFunction( resolver.getFunction(transit) );
 
-    //controller was found
-    emitter.emit('transit.controller', transit);
+      //[DELEGATE] for just before controller logic
+      emitter.emit('transit.controller', transit);
 
-    //call controller, then construct
-    var constructed = transit.run().then(function(res){
+      //reject when controller run takes to long
+      var timer = setTimeout(function(){
+        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
+      }, transit.MAX_EXECUTION_TIME);
 
-      //controller returned, new state can now be created
-      emitter.emit('transit.view', transit);
+      //run controller
+      var ended = transit.run().then(function(){
+        clearTimeout(timer);
 
-      //start construction
-      return transit.construct();
+        //[EMIT] for view logic
+        emitter.emit('transit.view', transit);
+
+        return transit.end();
+      }, reject);
+
+      //when everything is finished, resolve it with new state
+      Promise.all([started, ended]).then(function(){
+
+        //[EMIT] for end logic
+        emitter.emit('transit.end', transit);
+
+        resolve(transit.to);
+      }, reject);
+
     });
-
-    //when both deconstruction and construction has ended
-    var ended = Promise.all([deconstructed, constructed]);
-    ended.then(function(){
-      emitter.emit('transit.end', transit);
-    });
-
-    return ended;
   };
+
 
   /**
    * Install onto the context, in the browser this means listening to click

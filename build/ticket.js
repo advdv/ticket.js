@@ -2,7 +2,64 @@
 var Ticket = require('./src/ticket.js');
 
 module.exports = Ticket;
-},{"./src/ticket.js":3}],2:[function(require,module,exports){
+},{"./src/ticket.js":4}],2:[function(require,module,exports){
+/**
+ * This error is thrown whenever the controller returns something that cannot be used
+ */
+function ControllerReturnedInvalidError() {
+    var tmp = Error.apply(this, arguments);
+    tmp.name = this.name = 'ControllerReturnedInvalidError';
+
+    this.stack = tmp.stack;
+    this.message = tmp.message;
+
+    return this;
+}
+    var IntermediateInheritor = function() {};
+        IntermediateInheritor.prototype = Error.prototype;
+    ControllerReturnedInvalidError.prototype = new IntermediateInheritor();
+
+
+/**
+ * This error is thrown whenever the controller fails to retrurn something in time
+ */
+function ControllerTimeoutError() {
+    var tmp = Error.apply(this, arguments);
+    tmp.name = this.name = 'ControllerTimeoutError';
+
+    this.stack = tmp.stack;
+    this.message = tmp.message;
+
+    return this;
+}
+    var IntermediateInheritor = function() {};
+        IntermediateInheritor.prototype = Error.prototype;
+    ControllerTimeoutError.prototype = new IntermediateInheritor();
+
+
+/**
+ * Is thrown whenever it failed to find a controller
+ */
+function ControllerNotFoundError() {
+    var tmp = Error.apply(this, arguments);
+    tmp.name = this.name = 'ControllerNotFoundError';
+
+    this.stack = tmp.stack;
+    this.message = tmp.message;
+
+    return this;
+}
+    var IntermediateInheritor = function() {};
+        IntermediateInheritor.prototype = Error.prototype;
+    ControllerNotFoundError.prototype = new IntermediateInheritor();
+
+
+module.exports = {
+  ControllerNotFound: ControllerNotFoundError,
+  ControllerTimeout: ControllerTimeoutError,
+  ControllerReturnedInvalid: ControllerReturnedInvalidError
+};
+},{}],3:[function(require,module,exports){
 var State = function State(content) {
   var self = this;
 
@@ -15,8 +72,10 @@ var State = function State(content) {
 };
 
 module.exports = State;
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+/* globals setTimeout, clearTimeout */
 var Transit = require('./transit.js');
+var Errors = require('./errors.js');
 
 /**
  * The ticket instance takes an single argument in the browser environment; the browser window
@@ -24,7 +83,7 @@ var Transit = require('./transit.js');
  * @param {object} emmitter The event emitter that emits the kernel events
  * @param {Resolver} resolver the object responsible for resolving the callable from the transition
  * @param {Normalizer} is able to normalize browser events and request objects into an new transit
- * @param {Promixe} the promise library
+ * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
 var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
@@ -53,41 +112,53 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    *
    * @method handle()
    * @param  {Transit} transit the transit
-   * @return {[type]}         [description]
+   * @return {Promise} resolves when transit is handled
    */
   self.handle = function handle(transit) {
+    return new Promise(function(resolve, reject){
 
-    emitter.emit('transit.start', transit);
+      //[EMIT] for start logic
+      emitter.emit('transit.start', transit);
 
-    //start deconstruction
-    var deconstructed = transit.deconstruct();
+      //deconstruct state
+      var started = transit.start();
 
-    transit.setScope( resolver.getScope(transit) );
-    transit.setArguments( resolver.getArguments(transit) );
-    if(transit.fn === false)
-      transit.setFunction( resolver.getFunction(transit) );
+      //use the resolver to get scope, args and fn
+      transit.setScope( resolver.getScope(transit) );
+      transit.setArguments( resolver.getArguments(transit) );
+      if(transit.fn === false)
+        transit.setFunction( resolver.getFunction(transit) );
 
-    //controller was found
-    emitter.emit('transit.controller', transit);
+      //[DELEGATE] for just before controller logic
+      emitter.emit('transit.controller', transit);
 
-    //call controller, then construct
-    var constructed = transit.run().then(function(res){
+      //reject when controller run takes to long
+      var timer = setTimeout(function(){
+        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
+      }, transit.MAX_EXECUTION_TIME);
 
-      //controller returned, new state can now be created
-      emitter.emit('transit.view', transit);
+      //run controller
+      var ended = transit.run().then(function(){
+        clearTimeout(timer);
 
-      //start construction
-      return transit.construct();
+        //[EMIT] for view logic
+        emitter.emit('transit.view', transit);
+
+        return transit.end();
+      }, reject);
+
+      //when everything is finished, resolve it with new state
+      Promise.all([started, ended]).then(function(){
+
+        //[EMIT] for end logic
+        emitter.emit('transit.end', transit);
+
+        resolve(transit.to);
+      }, reject);
+
     });
-
-    //when both deconstruction and construction has ended
-    var ended = Promise.all([deconstructed, constructed]);
-    ended.then(function(){
-      emitter.emit('transit.end', transit);
-    });
-
-    return ended;
   };
+
 
   /**
    * Install onto the context, in the browser this means listening to click
@@ -162,9 +233,10 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 };
 
 module.exports = Ticket;
-},{"./transit.js":4}],4:[function(require,module,exports){
+},{"./errors.js":2,"./transit.js":5}],5:[function(require,module,exports){
 /* globals setTimeout, clearTimeout */
 var State = require('./state.js');
+var Errors = require('./errors.js');
 
 /**
  * A new transition requires the url to transit to and the method
@@ -174,7 +246,7 @@ var State = require('./state.js');
  */
 var Transit = function Transit(url, Promise, method) {
   var self = this;
-  var runResolver = Promise.defer();
+  var deferred = Promise.defer();
   var attributes = {};
   var timer;
 
@@ -185,21 +257,7 @@ var Transit = function Transit(url, Promise, method) {
    */
   self.MAX_EXECUTION_TIME = 5000;
 
-  /**
-   * Start maximum execution timer
-   */
-  self.startTimeout = function startTimeout() {
-    timer = setTimeout(function(){
-      runResolver.reject('Controller for transit to url "' + self.url + '" exceeded maximum execution time of: "'+self.MAX_EXECUTION_TIME+'ms", did the controller call render?');
-    }, self.MAX_EXECUTION_TIME);
-  };
 
-  /**
-   * Stop timer that prevents maximum execution time
-   */
-  self.stopTimeout = function stopTimeout() {
-    clearTimeout(timer);
-  };
 
   /**
    * The new url we are transitioning to
@@ -214,6 +272,12 @@ var Transit = function Transit(url, Promise, method) {
   self.method = typeof method !== 'undefined' ? method.toUpperCase() : 'GET';
 
   /**
+   * The function that acts as the controller
+   * @type {mixed}
+   */
+  self.fn = false;
+
+  /**
    * Scope in which the controller function will be executed
    * @type {object}
    */
@@ -225,11 +289,6 @@ var Transit = function Transit(url, Promise, method) {
    */
   self.arguments = [];
 
-  /**
-   * The function that acts as the controller
-   * @type {mixed}
-   */
-  self.fn = false;
 
   /**
    * The result that is returned from the controller
@@ -241,13 +300,7 @@ var Transit = function Transit(url, Promise, method) {
    * The new state we Transition TO
    * @type {State}
    */
-  self.newState = false;
-
-  /**
-   * The sold state we transit FROM
-   * @type {State}
-   */
-  self.oldState = false;
+  self.to = false;
 
   /**
    * Set the attributes container on this transit, overwrites existing
@@ -356,8 +409,7 @@ var Transit = function Transit(url, Promise, method) {
    * @return {Promise} the promise that completes when the que is finished
    * @todo  retrieve from current state
    */
-  self.deconstruct = function deconstruct() {
-
+  self.start = function start() {
     var que = [];
     return Promise.all(que);
   };
@@ -370,10 +422,9 @@ var Transit = function Transit(url, Promise, method) {
    * @return {Promise} the promise
    * @todo Retrieve que from state
    */
-  self.construct = function construct() {
-    
-    if(self.newState === false)
-      throw new Error('Controller did not provide an valid state, received: "'+self.result+'"');
+  self.end = function end() {
+    if(self.to === false)
+      throw new Errors.ControllerReturnedInvalid('Transit "to" was not set from result, result is: "'+self.result+'"');
 
     var que = [];
     return Promise.all(que);
@@ -388,9 +439,9 @@ var Transit = function Transit(url, Promise, method) {
    */
   self.run = function run() {
 
-    var p = runResolver.promise;
-    if(self.newState !== false) {
-      self.render(self.newState);
+    var p = deferred.promise;
+    if(self.to !== false) {
+      self.render(self.to);
       return p;
     }
 
@@ -400,7 +451,7 @@ var Transit = function Transit(url, Promise, method) {
     }
 
     if(!self.fn) {
-      throw new Error('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
+      throw new Errors.ControllerNotFound('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
     }
 
     if(!Array.isArray(self.arguments)) {
@@ -412,7 +463,6 @@ var Transit = function Transit(url, Promise, method) {
     }
 
     //if controller returns something right away (sync), try to render it
-    self.startTimeout();
     var res = self.fn.apply(self.scope, [self]);
     if(res !== undefined) {
       self.render(res);
@@ -430,9 +480,8 @@ var Transit = function Transit(url, Promise, method) {
    * @return {State} the new state or an exception
    */
   self.render = function render(result) {
-    runResolver.resolve(result);
+    deferred.resolve(result);
     self.result = result;
-    self.stopTimeout();
     
     if(!result) {
       throw new Error('Did you provide a value when rendering? received: "'+result+'"');
@@ -440,7 +489,7 @@ var Transit = function Transit(url, Promise, method) {
 
     //duck type to see if if its an state object, if so set it right away
     if(typeof result === 'object' && result.content !== undefined) {
-      self.newState = result;
+      self.to = result;
     }
     
   };
@@ -448,5 +497,5 @@ var Transit = function Transit(url, Promise, method) {
 };
 
 module.exports = Transit;
-},{"./state.js":2}]},{},[1])
+},{"./errors.js":2,"./state.js":3}]},{},[1])
 ;

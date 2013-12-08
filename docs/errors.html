@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><title>errors</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="errors"><meta name="groc-project-path" content="src/errors.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/errors.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>This error is thrown whenever the controller returns something that cannot be used</p></div></div><div class="code"><div class="wrapper"><span class="kd">function</span> <span class="nx">ControllerReturnedInvalidError</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="nx">tmp</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s1">&#39;ControllerReturnedInvalidError&#39;</span><span class="p">;</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">stack</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">stack</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">message</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">message</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+<span class="p">}</span>
+    <span class="kd">var</span> <span class="nx">IntermediateInheritor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
+        <span class="nx">IntermediateInheritor</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+    <span class="nx">ControllerReturnedInvalidError</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">IntermediateInheritor</span><span class="p">();</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>This error is thrown whenever the controller fails to retrurn something in time</p></div></div><div class="code"><div class="wrapper"><span class="kd">function</span> <span class="nx">ControllerTimeoutError</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="nx">tmp</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s1">&#39;ControllerTimeoutError&#39;</span><span class="p">;</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">stack</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">stack</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">message</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">message</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+<span class="p">}</span>
+    <span class="kd">var</span> <span class="nx">IntermediateInheritor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
+        <span class="nx">IntermediateInheritor</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+    <span class="nx">ControllerTimeoutError</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">IntermediateInheritor</span><span class="p">();</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Is thrown whenever it failed to find a controller</p></div></div><div class="code"><div class="wrapper"><span class="kd">function</span> <span class="nx">ControllerNotFoundError</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="nx">tmp</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s1">&#39;ControllerNotFoundError&#39;</span><span class="p">;</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">stack</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">stack</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">message</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">.</span><span class="nx">message</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+<span class="p">}</span>
+    <span class="kd">var</span> <span class="nx">IntermediateInheritor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
+        <span class="nx">IntermediateInheritor</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Error</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+    <span class="nx">ControllerNotFoundError</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">IntermediateInheritor</span><span class="p">();</span>
+
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="nx">ControllerNotFound</span><span class="o">:</span> <span class="nx">ControllerNotFoundError</span><span class="p">,</span>
+  <span class="nx">ControllerTimeout</span><span class="o">:</span> <span class="nx">ControllerTimeoutError</span><span class="p">,</span>
+  <span class="nx">ControllerReturnedInvalid</span><span class="o">:</span> <span class="nx">ControllerReturnedInvalidError</span>
+<span class="p">};</span></div></div></div></div></body></html>

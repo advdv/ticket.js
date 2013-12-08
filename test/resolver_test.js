@@ -1,7 +1,7 @@
 var Resolver = require('../src/resolver.js');
 var Transit = require('../src/transit.js');
 
-var Promise = require("when");
+var Promise = require("bluebird");
 
 describe('Resolver', function(){
 

@@ -4,8 +4,9 @@ var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 var Resolver = require('../src/resolver.js');
 var Normalizer = require('../src/normalizer.js');
+var Errors = require('../src/errors.js');
 
-var Promise = require("when");
+var Promise = require("bluebird");
 var Emitter = require('eventemitter2').EventEmitter2;
 
 var express = require('express');
@@ -143,98 +144,89 @@ describe('Ticket', function(){
     var t;
     beforeEach(function(){
       t = new Transit('/bogus', Promise);
-    });
+      t.MAX_EXECUTION_TIME = 100; //lower it to speedup test
 
-    
-    it('should emit start event', function(done) {
-
-      e.on('transit.start', function(t){
-        t.setFunction( function(){} );
-        t.should.be.an.instanceOf(Transit);
-        done();
-      });
-      
-      bt.handle(t);
-      t.stopTimeout();
-
-    });
-
-
-    it('should call deconstruct and emit controller event', function(done) {
-
-      sinon.stub(t, 'deconstruct');
-
-      var c = function() {};
-
-      e.on('transit.start', function(t){
-        t.setFunction( c );
-      });
-
-      e.on('transit.controller', function(t){        
-        t.scope.should.an.instanceOf(Object);
-        t.fn.should.equal(c);
-        t.arguments.should.be.an.instanceOf(Array);
-        t.deconstruct.callCount.should.equal(1);
-        done();
-      });
-      
-      bt.handle(t);
-      t.stopTimeout();
-
-    });
-  
-
-    it('should run function and emit view event', function(done) {
-
-      e.on('transit.controller', function(t){  
-        t.setFunction(function(){
-          this.render(new State('hello world'));
-        });
-      });
-
-      e.on('transit.view', function(t){  
-        t.should.be.an.instanceOf(Transit);
-        t.result.content.should.equal('hello world');
-
-        done();
-      });
-
-      bt.handle(t);
-
-    });
-
-    it('should run end event', function(done) {
-
-      e.on('transit.controller', function(t){  
-        t.setFunction(function(){
-          this.render(new State('hello world'));
-        });
-      });
-
-      e.on('transit.end', function(t){
-        t.should.be.an.instanceOf(Transit);
-        done();
-      });
-
-      var ended = bt.handle(t);
-      ended.then.should.be.an.instanceOf(Function); //duck type promises/A+ 
-
-    });
-
-    
-    it('throw on wrong response', function() {
-
-      r.getFunction = function(){ return false; };
-      (function(){
-        try {
-          bt.handle(t);    
-        } catch(err) {
-          t.stopTimeout();
+      Promise.onPossiblyUnhandledRejection(function(err){
           throw err;
-        }        
-      }).should.throw();
-      
+      });
     });
+
+    it('should return an promise & throw a ControllerNotFound exception', function(done){
+
+      var handled = bt.handle(t);
+      handled.then.should.be.an.instanceOf(Function);
+      handled.catch(Errors.ControllerNotFound, function(err){
+        done();
+      });
+  
+    });
+
+    it('should show exceptions of the controller', function(done){
+
+      t.setFunction(function(){
+
+        arguments.length.should.equal(1);
+        throw new Error('deliberate controller error');
+
+      });
+
+      var handled = bt.handle(t);
+      handled.catch(Error, function(err){
+        err.message.should.equal('deliberate controller error');
+        done();
+      });
+
+    });
+
+    it('should throw time out', function(done){
+
+      t.setFunction(function(){
+        //do nothing here, let it timeout
+      });
+
+      var handled = bt.handle(t);      
+      handled.catch(Errors.ControllerTimeout, function(err){
+        done();
+      });
+
+    });
+
+    it('should throw invalid response', function(done){
+
+      t.setFunction(function(t){
+
+        t.render('aaa'); //actually attempt render something
+
+      });
+
+      var handled = bt.handle(t);      
+      handled.catch(Errors.ControllerReturnedInvalid, function(err){
+        done();
+      });
+
+    });
+
+
+    it('should succeed', function(done){
+
+      var res = new State('aaa');
+      t.setFunction(function(t){
+
+        t.render(res); //actually attempt render new state
+
+      });
+
+      var handled = bt.handle(t);      
+      handled.then(function(){
+
+        arguments.length.should.equal(1);
+        arguments[0].should.equal(res);
+        done();
+
+      });
+
+    });
+
   
   });
 

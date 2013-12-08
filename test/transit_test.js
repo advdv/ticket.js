@@ -2,7 +2,7 @@
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 
-var Promise = require("when");
+var Promise = require("bluebird");
 var sinon = require('sinon');
 
 describe('Transit', function(){
@@ -92,7 +92,7 @@ describe('Transit', function(){
       sinon.spy(t, 'render');
 
       var s = new State('finished up front');
-      t.newState = s;
+      t.to = s;
 
       var p = t.run();
       p.then(function(res){        
@@ -119,20 +119,6 @@ describe('Transit', function(){
 
     });
 
-    it("should reject on timeout", function(done){
-      t.fn = function() {};
-      t.MAX_EXECUTION_TIME = 100;
-      var p = t.run();
-
-      p.then(function(){
-        //it should reject
-      },function(reason){
-        reason.indexOf('maximum execution time').should.not.equal(-1);
-        done();
-      });
-
-    });
-
 
   });
 
@@ -147,12 +133,13 @@ describe('Transit', function(){
     it("Should set a new state when received one", function(){
       var s = new State('html');
       t.render(s);
-      t.newState.should.equal(s);
+      t.to.should.equal(s);
     });
 
 
   });
 
+  /*
 
   describe('#construct()', function() {
 
@@ -170,5 +157,7 @@ describe('Transit', function(){
     });
 
   });
+
+*/
 
 });
