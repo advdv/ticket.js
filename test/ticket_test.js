@@ -126,6 +126,27 @@ describe('Ticket', function(){
 
     });
 
+    it('exceptions should reject the deferred', function(done){
+
+      bt.handle.restore(); //restore to return false
+      sinon.stub(bt, 'handle', function(){ throw new Error('test'); });
+
+
+      bt.install(function(t){
+
+        t.deferred.promise.catch(function(err){
+          err.message.should.equal('test');
+          bt.normalize.callCount.should.equal(1);
+          bt.handle.callCount.should.equal(1);
+          done();
+        });
+
+      });
+
+      doClick();
+
+    });
+
     if(server) {
       it('should install middleware listener on the server', function(done){
 

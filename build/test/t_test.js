@@ -5840,14 +5840,10 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
     //deconstruct state
     var started = transit.start();
 
-
     transit.controller.scope = resolver.getScope(transit);
     transit.controller.args = resolver.getArguments(transit);
       if(typeof transit.controller.fn !== 'function')
         transit.controller.fn = resolver.getFunction(transit);
-
-    //@todo resolve using resolver
-
 
     //reject when controller run takes to long
     var timer = setTimeout(function(){
@@ -5884,12 +5880,19 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    * @return {[type]}      [description]
    */
   self.install = function install(fn) {
+    var doHandle = function(t, args) {
+        fn(t, args);
+        try {
+          self.handle(t);  
+        } catch(err) {
+          t.deferred.reject(err);
+        }
+    };
+
     if(self.isServer()) {
       self.context.use(function(req, res, next){
         var t = self.normalize(req, res);
-
-        fn(t, arguments);
-        self.handle(t);
+        doHandle(t, arguments);
       });
     } else {
       self.context.document.onclick = function(e) {      
@@ -5897,8 +5900,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         if(t === false || t === undefined)
           return;
 
-        fn(t, arguments);
-        self.handle(t);
+        doHandle(t, arguments);
       };
     }
   };
@@ -6332,6 +6334,27 @@ describe('Ticket', function(){
       //handle should not have been called
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(0);
+
+    });
+
+    it('exceptions should reject the deferred', function(done){
+
+      bt.handle.restore(); //restore to return false
+      sinon.stub(bt, 'handle', function(){ throw new Error('test'); });
+
+
+      bt.install(function(t){
+
+        t.deferred.promise.catch(function(err){
+          err.message.should.equal('test');
+          bt.normalize.callCount.should.equal(1);
+          bt.handle.callCount.should.equal(1);
+          done();
+        });
+
+      });
+
+      doClick();
 
     });
 
