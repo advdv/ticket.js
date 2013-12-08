@@ -59,7 +59,7 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
 
     <span class="c1">//when everything is finished, resolve it with new state</span>
     <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">started</span><span class="p">,</span> <span class="nx">ended</span><span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
-      <span class="nx">transit</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span> <span class="c1">//let transit emit end event</span>
+      <span class="nx">transit</span><span class="p">.</span><span class="nx">terminate</span><span class="p">();</span>
 
       <span class="c1">//when start and end it complete resolve the transit</span>
       <span class="nx">deferred</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">transit</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>

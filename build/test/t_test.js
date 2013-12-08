@@ -5818,7 +5818,7 @@ var Ticket = function Ticket(resolver, normalizer, Promise, context) {
 
     //when everything is finished, resolve it with new state
     Promise.all([started, ended]).then(function(){
-      transit.emit('end', transit); //let transit emit end event
+      transit.terminate();
 
       //when start and end it complete resolve the transit
       deferred.resolve(transit.to);
@@ -6001,6 +6001,15 @@ var Transit = function Transit(url, Promise, emitter) {
   self.start = function start() {
     self.emit('start', self); //[EMIT] before anything
     return Promise.all([]);
+  };
+
+  /**
+   * This is called at the very ending of an transit, it
+   * emits the end event and removes all listeners
+   * @return {[type]} [description]
+   */
+  self.terminate = function terminate() {
+    self.emit('end', self); //let transit emit end event
   };
 
   /**

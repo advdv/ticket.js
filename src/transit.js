@@ -97,6 +97,15 @@ var Transit = function Transit(url, Promise, emitter) {
   };
 
   /**
+   * This is called at the very ending of an transit, it
+   * emits the end event and removes all listeners
+   * @return {[type]} [description]
+   */
+  self.terminate = function terminate() {
+    self.emit('end', self); //let transit emit end event
+  };
+
+  /**
    * Returns promise that completes when construction 
    * phase to the new state is complete
    *   

@@ -69,6 +69,13 @@ phase from old state is complete</p>
     <span class="k">return</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([]);</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
+<p>This is called at the very ending of an transit, it
+emits the end event and removes all listeners</p>
+
+<p><strong>Returns a [type]</strong><br/>([description])</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">terminate</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">terminate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="nx">self</span><span class="p">);</span> <span class="c1">//let transit emit end event</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
 <p>Returns promise that completes when construction 
 phase to the new state is complete</p>
 

@@ -67,7 +67,7 @@ var Ticket = function Ticket(resolver, normalizer, Promise, context) {
 
     //when everything is finished, resolve it with new state
     Promise.all([started, ended]).then(function(){
-      transit.emit('end', transit); //let transit emit end event
+      transit.terminate();
 
       //when start and end it complete resolve the transit
       deferred.resolve(transit.to);
