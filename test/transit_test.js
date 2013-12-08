@@ -52,7 +52,7 @@ describe('Transit', function(){
       t.hasAttribute('bogus').should.equal(false);
       
       var res = t.getAttributes();
-      Object.keys(res).length.should.equal(3);
+      Object.keys(res).length.should.equal(3); 
 
     });
   });
@@ -99,7 +99,7 @@ describe('Transit', function(){
         t.run();  
       }).should.throw(Error); //invalid scope
 
-      onController.should.equal(3);
+      onController.should.equal(1); //can only be called once on the same transit
 
     });
 

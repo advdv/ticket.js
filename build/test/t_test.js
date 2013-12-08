@@ -5970,10 +5970,7 @@ var Transit = function Transit(url, Promise, emitter) {
    * @chainable
    */
   self.on = function on(event, fn) {
-    emitter.on('transit.'+event+'.'+self.url, fn);
-
-
-
+    emitter.once('transit.'+event+'.'+self.url, fn);
     return self;
   };
 
