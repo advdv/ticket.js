@@ -141,8 +141,12 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       var ended = transit.run().then(function(){
         clearTimeout(timer);
 
-        //[EMIT] for view logic
-        emitter.emit('transit.view', transit);
+        try {
+          //[EMIT] for view logic
+          emitter.emit('transit.view', transit);  
+        } catch(err) {
+          reject(err);
+        }
 
         return transit.end();
       }, reject);

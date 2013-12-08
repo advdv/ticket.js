@@ -58,8 +58,12 @@ in the browser this is the dom window</p></div></div><div class="code"><div clas
       <span class="kd">var</span> <span class="nx">ended</span> <span class="o">=</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">run</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
         <span class="nx">clearTimeout</span><span class="p">(</span><span class="nx">timer</span><span class="p">);</span>
 
-        <span class="c1">//[EMIT] for view logic</span>
-        <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.view&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>
+        <span class="k">try</span> <span class="p">{</span>
+          <span class="c1">//[EMIT] for view logic</span>
+          <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;transit.view&#39;</span><span class="p">,</span> <span class="nx">transit</span><span class="p">);</span>  
+        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">reject</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+        <span class="p">}</span>
 
         <span class="k">return</span> <span class="nx">transit</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
       <span class="p">},</span> <span class="nx">reject</span><span class="p">);</span>

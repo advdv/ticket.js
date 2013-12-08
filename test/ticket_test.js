@@ -211,6 +211,27 @@ describe('Ticket', function(){
 
     });
 
+
+    it('should throw on view event exception', function(done){
+
+
+      e.on('transit.view', function(){
+        throw new Error('deliberate view exception');
+      });
+
+      t.setFunction(function(t){
+        t.render('aaa'); //actually attempt render something
+      });
+
+      var handled = bt.handle(t);      
+      handled.catch(Error, function(err){
+        err.message.should.equal('deliberate view exception');
+        done();
+      });
+
+    });
+
+
     it('should throw invalid response', function(done){
 
       t.setFunction(function(t){
