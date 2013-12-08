@@ -5789,12 +5789,9 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    * @method handle()
    * @param  {Transit} transit the transit
    * @return {Promise} resolves when transit is handled
-   */
-  self.handle = function handle(transit) {
-    return new Promise(function(resolve, reject){
 
-      //[EMIT] for start logic
-      emitter.emit('transit.start', transit);
+  self.handle = function handle(transit) {
+    var p = new Promise(function(resolve, reject){
 
       //deconstruct state
       var started = transit.start();
@@ -5805,9 +5802,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       if(transit.fn === false)
         transit.setFunction( resolver.getFunction(transit) );
 
-      //[DELEGATE] for just before controller logic
-      emitter.emit('transit.controller', transit);
-
       //reject when controller run takes to long
       var timer = setTimeout(function(){
         reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
@@ -5817,30 +5811,96 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       var ended = transit.run().then(function(){
         clearTimeout(timer);
 
-        try {
-          //[EMIT] for view logic
-          emitter.emit('transit.view', transit);  
-        } catch(err) {
-          reject(err);
-        }
-
         return transit.end();
       }, reject);
 
       //when everything is finished, resolve it with new state
       Promise.all([started, ended]).then(function(){
-
-        try {
-          //[EMIT] for end logic
-          emitter.emit('transit.end', transit);
-        } catch(err) {
-          reject(err);
-        }
-
         resolve(transit.to);
       }, reject);
 
     });
+
+    transit.setHandle(p);
+    return p;
+
+  };
+   */
+
+  /**
+   * Handle the normalized transit throughout its livecycle
+   *
+   * @method handle()
+   * @param  {Transit} transit the transit
+   * @return {Promise} resolves when transit is handled
+   */
+  self.handle = function handle(transit) {
+    var deferred = transit.deferred;
+
+    //deconstruct state
+    var started = transit.start();
+
+
+    transit.controller.scope = resolver.getScope(transit);
+    transit.controller.args = resolver.getArguments(transit);
+      if(typeof transit.controller.fn !== 'function')
+        transit.controller.fn = resolver.getFunction(transit);
+
+    //@todo resolve using resolver
+
+
+    //reject when controller run takes to long
+    var timer = setTimeout(function(){
+      deferred.reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.timeout+'ms", did the controller call render?'));
+    }, transit.timeout);
+
+    //run controller
+    var ended = transit.run().then(function(){
+      clearTimeout(timer);
+
+      //when ran, end the transit
+      return transit.end();
+    }, function(err){
+      deferred.reject(err);
+    });
+
+    //when everything is finished, resolve it with new state
+    Promise.all([started, ended]).then(function(){
+
+      //when start and end it complete resolve the transit
+      deferred.resolve(transit.to);
+    }, function(err){
+      deferred.reject(err);
+    });
+
+    return deferred.promise;
+  };
+
+
+  /**
+   * Install the kernel with the handler to handle transits
+   *   
+   * @param  {Function} fn the transit handler
+   * @return {[type]}      [description]
+   */
+  self.install = function install(fn) {
+    if(self.isServer()) {
+      self.context.use(function(req, res, next){
+        var t = self.normalize(req, res);
+
+        fn(t, arguments);
+        self.handle(t);
+      });
+    } else {
+      self.context.document.onclick = function(e) {      
+        var t = self.normalize(e);
+        if(t === false || t === undefined)
+          return;
+
+        fn(t, arguments);
+        self.handle(t);
+      };
+    }
   };
 
 
@@ -5851,7 +5911,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    * @param  {Function} fn the funtion that receives the transit handler
    * @return {Ticket}      self
    * @chainable
-   */
+
   self.install = function install(fn) {
     if(self.isServer()) {
       self.context.use(function(req, res, next){
@@ -5859,7 +5919,9 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         t.setAttribute('_res', res);
         t.setAttribute('_req', req);
         t.setAttribute('_next', next);
-        fn(self.handle(t));
+
+        var p = self.handle(t);
+        fn(t, p);
       });
     } else {
       self.context.document.onclick = function(e) {      
@@ -5867,12 +5929,15 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         if(t === false || t === undefined)
           return;
 
-        fn(self.handle(t));
+        var p = self.handle(t);
+        fn(t, p);
       };
     }
 
     return self;
   };
+
+  */
 
   /**
    * Normalize the event for each environment, in the browser this is the click event, on the 
@@ -5928,20 +5993,11 @@ var Errors = require('./errors.js');
  * A new transition requires the url to transit to and the method
  *   
  * @param {string} url    the url
- * @param {string} method the method
  */
-var Transit = function Transit(url, Promise, method) {
+var Transit = function Transit(url, Promise, Emitter) {
   var self = this;
-  var deferred = Promise.defer();
   var attributes = {};
-  var timer;
-
-  /**
-   * Maximum time we wait for the controller to finish
-   * 
-   * @type {Number}
-   */
-  self.MAX_EXECUTION_TIME = 5000;
+  var controllerResolver = Promise.defer();
 
   /**
    * The new url we are transitioning to
@@ -5950,29 +6006,17 @@ var Transit = function Transit(url, Promise, method) {
   self.url = url;
 
   /**
-   * The HTTP method only relevant on server 
-   * @type {string}
+   * How long the controller can take before it times out
+   * @type {Number}
    */
-  self.method = typeof method !== 'undefined' ? method.toUpperCase() : 'GET';
+  self.timeout = 5000;
 
   /**
-   * The function that acts as the controller
-   * @type {mixed}
+   * Will contain the new state we are transitting to
+   * 
+   * @type {Boolean}
    */
-  self.fn = false;
-
-  /**
-   * Scope in which the controller function will be executed
-   * @type {object}
-   */
-  self.scope = self;
-
-  /**
-   * The arguments that will be passed to the function
-   * @type {Array}
-   */
-  self.arguments = [];
-
+  self.to = false;
 
   /**
    * The result that is returned from the controller
@@ -5981,12 +6025,115 @@ var Transit = function Transit(url, Promise, method) {
   self.result = false;
 
   /**
-   * The new state we Transition TO
-   * @type {State}
+   * The promise that completes whenever the transit is completely finished
+   * @type {Promise}
    */
-  self.to = false;
+  self.deferred = Promise.defer();
+
 
   /**
+   * Holds the controller as an scope, fn and args
+   * @type {Object}
+   */
+  self.controller = {
+    scope: self,
+    args: [],
+    fn: false
+  };
+
+  /**
+   * Returns promise that completes when deconstruction 
+   * phase from old state is complete
+   *   
+   * @return {Promise} the promise
+   */
+  self.start = function start() {
+    return Promise.all([]);
+  };
+
+  /**
+   * Returns promise that completes when construction 
+   * phase to the new state is complete
+   *   
+   * @return {Promise} the promise
+   */
+  self.end = function end() {
+
+    //check if new state is set
+    if(self.to === false)
+      throw new Errors.ControllerReturnedInvalid('Transit "to" state was not set from result, result is: "'+self.result+'"');
+
+    return Promise.all([]);
+  };
+
+  /**
+   * Returns a promise that completes whenever the controller
+   * has finished running;
+   * 
+   * @return {Promise} the promise
+   */
+  self.run = function run() {
+    var p = controllerResolver.promise;
+    if(self.to !== false) {
+      self.render(self.to);
+      return p;
+    }
+
+    if(self.result !== false) {
+      self.render(self.result);
+      return p;
+    }
+
+    if(!self.controller.fn) {
+      throw new Errors.ControllerNotFound('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
+    }
+
+    if(!Array.isArray(self.controller.args)) {
+      throw new Error('Provided controller arguments should be an Array, received "'+self.controller.args+'"');
+    }
+
+    if(typeof self.controller.scope !== 'object') {
+      throw new Error('Provided controller scope should be an Object, received "'+self.controller.scope+'"');
+    }
+
+    //if controller returns something right away (sync), try to render it
+    var args = self.controller.args;
+
+    args.unshift(self);
+    var res = self.controller.fn.apply(self.controller.scope, args);
+    if(res !== undefined) {
+      self.render(res);
+    }
+
+    return p;
+  };
+
+  /**
+   * Renders the result of the controller, this resolves the promise
+   * returned by run()
+   *   
+   * @param  {mixed} result
+   */
+  self.render = function render(result) {
+    controllerResolver.resolve(result);
+    self.result = result;
+
+    if(!result) {
+      throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
+    }
+
+    //duck type to see if if its an state object, if so set it right away
+    if(typeof result === 'object' && result.content !== undefined) {
+      self.to = result;
+    }
+    
+  };
+
+  /**
+   * ATTRIBUTE MANIPULATION
+   */
+
+ /**
    * Set the attributes container on this transit, overwrites existing
    * attributes
    *
@@ -6055,128 +6202,6 @@ var Transit = function Transit(url, Promise, method) {
     return true;
   };
 
-  /** 
-   * Set the scope in which the controller function will be executed
-   *
-   * @method setScope()
-   * @param {object} scope the object
-   */
-  self.setScope = function setScope(scope) {
-    self.scope = scope;
-  };
-
-  /**
-   * The function that is called as the controller action, is expected
-   * to render something
-   *
-   * @method setFunction()
-   * @param {Function} fn the controller
-   */
-  self.setFunction = function setFunction(fn) {
-    self.fn = fn;
-  };
-
-  /**
-   * Set the arguments passed to the controller
-   *
-   * @method setArguments()
-   * @param {Array} args the arguments
-   */
-  self.setArguments = function setArguments(args) {
-    self.arguments = args;
-  };
-
-  /**
-   * Start the deconstruct phase of the transit, ask the current
-   * state for the que
-   * 
-   * @return {Promise} the promise that completes when the que is finished
-   * @todo  retrieve from current state
-   */
-  self.start = function start() {
-    var que = [];
-    return Promise.all(que);
-  };
-
-
-  /**
-   * Get the construct que from the new state and return a promise
-   * that resolves when each promise in the que is resolved
-   * 
-   * @return {Promise} the promise
-   * @todo Retrieve que from state
-   */
-  self.end = function end() {
-    if(self.to === false)
-      throw new Errors.ControllerReturnedInvalid('Transit "to" was not set from result, result is: "'+self.result+'"');
-
-    var que = [];
-    return Promise.all(que);
-  };
-
-  /**
-   * Call the controller as the provided Fn, in the said scope using 
-   * the given arguments
-   *
-   * @method run()
-   * @return {Promise} the promise that resolves when the controller is complete
-   */
-  self.run = function run() {
-
-    var p = deferred.promise;
-    if(self.to !== false) {
-      self.render(self.to);
-      return p;
-    }
-
-    if(self.result !== false) {
-      self.render(self.result);
-      return p;
-    }
-
-    if(!self.fn) {
-      throw new Errors.ControllerNotFound('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
-    }
-
-    if(!Array.isArray(self.arguments)) {
-      throw new Error('Provided controller arguments should be an Array, received "'+self.arguments+'"');
-    }
-
-    if(typeof self.scope !== 'object') {
-      throw new Error('Provided controller scope should be an Object, received "'+self.scope+'"');
-    }
-
-    //if controller returns something right away (sync), try to render it
-    var res = self.fn.apply(self.scope, [self]);
-    if(res !== undefined) {
-      self.render(res);
-    }
-
-    return p;
-
-  };
-
-  /**
-   * Attempts to render the controllers result into the new state
-   *
-   * @method render()
-   * @param  {mixed} result the controllers retunred value
-   * @return {State} the new state or an exception
-   */
-  self.render = function render(result) {
-    deferred.resolve(result);
-    self.result = result;
-    
-    if(!result) {
-      throw new Error('Did you provide a value when rendering? received: "'+result+'"');
-    }
-
-    //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' && result.content !== undefined) {
-      self.to = result;
-    }
-    
-  };
 
 };
 
@@ -6234,7 +6259,6 @@ describe('Ticket', function(){
   describe('#construct()', function(){
 
     it('should initialize members', function(){
-
       if(server) {
         st.should.be.an.instanceOf(Ticket);
         st.context.should.equal(sctx);
@@ -6242,50 +6266,70 @@ describe('Ticket', function(){
 
       bt.should.be.an.instanceOf(Ticket);
       bt.context.should.equal(bctx);
-
     });
 
   });
 
+
   describe('#isServer()', function(){
-
     it('should return true if on server', function(){
-
       if(server) {
         st.isServer().should.equal(true);  
       }
       
       bt.isServer().should.equal(false);
-
     });
-
   });
+
 
   describe('#install()', function(){
 
-    it('should install event listener in the browser', function(){
-
+    var doClick;
+    beforeEach(function(){
       sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
-      sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
-      var res = bt.install(function(p){
-        p.should.be.an.instanceOf(Promise);
+      sinon.stub(bt, 'handle', function(){});
+
+      if(server) {
+        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise); });
+        sinon.stub(st, 'handle', function(){});
+      }
+
+      //create fake click
+      var e = bctx.document.createEvent('MouseEvents');
+      e.initEvent('click', true, true);
+      doClick = function() {
+        bctx.document.dispatchEvent(e);
+      };
+
+    });
+
+    it('should install event listener in the browser', function(done){
+
+      bt.install(function(t, args){
+        t.should.be.an.instanceOf(Transit);
+        args.length.should.equal(1);
+
+        //check if api is called
+        bt.normalize.callCount.should.equal(1);
+        bt.handle.callCount.should.equal(0);
+
+        done();
       });
-      bctx.document.onclick();
-      bt.normalize.callCount.should.equal(1);
-      bt.handle.callCount.should.equal(1);
-      res.should.equal(bt);
+
+      //click to call install
+      doClick();
 
     });
 
     it('should not call handle when normalize return false', function(){
 
+      bt.normalize.restore(); //restore to return false
       sinon.stub(bt, 'normalize', function(){ return false; });
-      sinon.stub(bt, 'handle');
-      var res = bt.install(function(){
 
+      bt.install();
+      doClick();
 
-      });
-      bctx.document.onclick();
+      //handle should not have been called
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(0);
 
@@ -6294,147 +6338,119 @@ describe('Ticket', function(){
     if(server) {
       it('should install middleware listener on the server', function(done){
 
-        var t = new Transit('/test', Promise);
-        sinon.stub(st, 'normalize', function(req, res){ 
-            arguments.length.should.equal(2); 
-            res.end(); //just cancel the req for now
-            return t;
-        });
+        st.install(function(t, args){
+          t.should.be.an.instanceOf(Transit);
+          args.length.should.equal(3);
 
-        sinon.stub(st, 'handle', function(){ 
-            return new Promise(function(resolve, reject){
-                resolve('test');
-
-              });
-            }
-        );
-
-        st.install(function(){
+          //check if api is called
+          st.normalize.callCount.should.equal(1);
+          st.handle.callCount.should.equal(0);
+          done();
 
         });
-        
+
+        //send fake request
         request(sctx)
           .get('/bogus')
           .expect(200, '')
-          .end(function(){
-            st.normalize.callCount.should.equal(1);
-            st.handle.callCount.should.equal(1);
-            t.hasAttribute('_res').should.equal(true);
-            t.hasAttribute('_req').should.equal(true);
-            t.hasAttribute('_next').should.equal(true);
-            done();
-          });
+          .end(function(){});
 
       });
     }
 
   });
 
+
   describe('#handle()', function(){
 
-    var t, onStart, onController, onView, onEnd;
+    var t;
     beforeEach(function(){
-      onStart = 0;
-      onController = 0;
-      onView = 0;
-      onEnd = 0;
-
-      e.on('transit.start', function(){ onStart+=1;  });
-      e.on('transit.controller', function(){ onController+=1;  });
-      e.on('transit.view', function(){ onView+=1;  });
-      e.on('transit.end', function(){ onEnd+=1;  });
-
       t = new Transit('/bogus', Promise);
-      t.MAX_EXECUTION_TIME = 100; //lower it to speedup test
-
-      Promise.onPossiblyUnhandledRejection(function(err){
-          throw err;
-      });
-    });
-
-    it('should trigger event & return an promise & throw a ControllerNotFound exception', function(done){
-
-      var handled = bt.handle(t);
-      handled.then.should.be.an.instanceOf(Function);
-      handled.catch(Errors.ControllerNotFound, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
-        done();
-      });
-  
-    });
-
-    it('should show exceptions of the controller', function(done){
-
-      t.setFunction(function(){
-        arguments.length.should.equal(1);
-        throw new Error('deliberate controller error');
+      Promise.onPossiblyUnhandledRejection(function(error){
+          throw error;
       });
 
-      var handled = bt.handle(t);
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate controller error');
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
-        done();
-      });
+      sinon.spy(r, 'getScope');
+      sinon.spy(r, 'getArguments');
+      sinon.spy(r, 'getFunction');
 
     });
 
-    it('should throw time out', function(done){
+    it('should complete when all return immediately', function(done){
 
-      t.setFunction(function(){
-        //do nothing here, let it timeout
-      });
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
 
-      var handled = bt.handle(t);      
-      handled.catch(Errors.ControllerTimeout, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
+      var p = bt.handle(t);
+      p.should.be.an.instanceOf(Promise);
+      p.then(function(){
+
+        r.getScope.callCount.should.equal(1);
+        r.getArguments.callCount.should.equal(1);
+        r.getFunction.callCount.should.equal(1);
+
         done();
       });
 
     });
 
 
-    it('should throw on view event exception', function(done){
+    it('should throw when start throws', function(done){
 
-
-      e.on('transit.view', function(){
-        throw new Error('deliberate view exception');
+      t.controller.fn = function(){};
+      sinon.stub(t, 'start', function(){ 
+        return new Promise(function(resolve, reject){
+          throw new Error('deliberate error 1'); 
+        });
       });
 
-      t.setFunction(function(t){
-        t.render('aaa'); //actually attempt render something
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
+
+      var p = bt.handle(t);
+      p.catch(function(err){
+        err.message.should.equal('deliberate error 1');
+
+        r.getScope.callCount.should.equal(1);
+        r.getArguments.callCount.should.equal(1);
+        r.getFunction.callCount.should.equal(0); //controller.fn was already set
+
+        done();
       });
 
-      var handled = bt.handle(t);      
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate view exception');
+    });
+
+    it('should throw when run throws', function(done){
+
+      sinon.stub(t, 'run', function(){ 
+        return new Promise(function(resolve, reject){
+          throw new Error('deliberate error 2'); 
+        });
+      });
+
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
+
+      var p = bt.handle(t);
+      p.catch(function(err){
+        err.message.should.equal('deliberate error 2');
         done();
       });
 
     });
 
 
-    it('should throw invalid response', function(done){
+    it('should throw timeout when run takes to long', function(done){
 
-      t.setFunction(function(t){
-        t.render('aaa'); //actually attempt render something
-      });
+      t.timeout = 100;
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){  }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
 
-      var handled = bt.handle(t);      
-      handled.catch(Errors.ControllerReturnedInvalid, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(1);
-        onEnd.should.equal(0);
+      var p = bt.handle(t);
+      p.catch(Errors.ControllerTimeout, function(err){
+        err.message.indexOf(t.timeout.toString()).should.not.equal(-1); //error should display timeout
         done();
       });
 
@@ -6443,57 +6459,9 @@ describe('Ticket', function(){
 
 
 
-    it('should throw exception in listener', function(done){
-
-      e.on('transit.end', function(){
-        throw new Error('deliberate end exception');
-      });
-
-      var res = new State('aaa');
-      t.setFunction(function(t){
-
-        t.render(res); //actually attempt render new state
-
-      });
-
-      var handled = bt.handle(t);      
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate end exception');
-        done();
-      });
-
-    });
-
-    it('should succeed', function(done){
-
-      var res = new State('aaa');
-      t.setFunction(function(t){
-
-        t.render(res); //actually attempt render new state
-
-      });
-
-      var handled = bt.handle(t);      
-      handled.then(function(){
-
-        arguments.length.should.equal(1);
-        arguments[0].should.equal(res);
-
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(1);
-        onEnd.should.equal(1);
-        done();
-
-      });
-
-
-
-
-    });
-
-  
   });
+
+
 
   describe('#normalize()', function(){
 
@@ -6553,9 +6521,7 @@ describe('Ticket', function(){
           }
 
           e.preventDefault();
-
       };
-
 
       link.setAttribute('href', '/#/test');
       link.dispatchEvent(e);
@@ -6571,6 +6537,7 @@ describe('Ticket', function(){
 
     });
 
+  
     if(server) {
       it('should throw on wrong server args', function(){
 
@@ -6595,14 +6562,12 @@ describe('Ticket', function(){
             t.url.should.equal('/test');
           } else {
             t.url.should.equal('/test2');
-            t.method.should.equal('POST');
           }
           res.end();
         });
 
         //trigger middleware
         request(sctx).get('/test').end(function(){});
-
         request(sctx).post('/test2').end(function(){});
 
       });
@@ -6610,7 +6575,6 @@ describe('Ticket', function(){
 
 
   });
-
 
 });
 

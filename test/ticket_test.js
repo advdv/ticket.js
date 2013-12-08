@@ -50,7 +50,6 @@ describe('Ticket', function(){
   describe('#construct()', function(){
 
     it('should initialize members', function(){
-
       if(server) {
         st.should.be.an.instanceOf(Ticket);
         st.context.should.equal(sctx);
@@ -58,50 +57,70 @@ describe('Ticket', function(){
 
       bt.should.be.an.instanceOf(Ticket);
       bt.context.should.equal(bctx);
-
     });
 
   });
 
+
   describe('#isServer()', function(){
-
     it('should return true if on server', function(){
-
       if(server) {
         st.isServer().should.equal(true);  
       }
       
       bt.isServer().should.equal(false);
-
     });
-
   });
+
 
   describe('#install()', function(){
 
-    it('should install event listener in the browser', function(){
-
+    var doClick;
+    beforeEach(function(){
       sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
-      sinon.stub(bt, 'handle', function(){ return new Promise(function(resolve, reject){resolve('test');}); });
-      var res = bt.install(function(p){
-        p.should.be.an.instanceOf(Promise);
+      sinon.stub(bt, 'handle', function(){});
+
+      if(server) {
+        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise); });
+        sinon.stub(st, 'handle', function(){});
+      }
+
+      //create fake click
+      var e = bctx.document.createEvent('MouseEvents');
+      e.initEvent('click', true, true);
+      doClick = function() {
+        bctx.document.dispatchEvent(e);
+      };
+
+    });
+
+    it('should install event listener in the browser', function(done){
+
+      bt.install(function(t, args){
+        t.should.be.an.instanceOf(Transit);
+        args.length.should.equal(1);
+
+        //check if api is called
+        bt.normalize.callCount.should.equal(1);
+        bt.handle.callCount.should.equal(0);
+
+        done();
       });
-      bctx.document.onclick();
-      bt.normalize.callCount.should.equal(1);
-      bt.handle.callCount.should.equal(1);
-      res.should.equal(bt);
+
+      //click to call install
+      doClick();
 
     });
 
     it('should not call handle when normalize return false', function(){
 
+      bt.normalize.restore(); //restore to return false
       sinon.stub(bt, 'normalize', function(){ return false; });
-      sinon.stub(bt, 'handle');
-      var res = bt.install(function(){
 
+      bt.install();
+      doClick();
 
-      });
-      bctx.document.onclick();
+      //handle should not have been called
       bt.normalize.callCount.should.equal(1);
       bt.handle.callCount.should.equal(0);
 
@@ -110,147 +129,119 @@ describe('Ticket', function(){
     if(server) {
       it('should install middleware listener on the server', function(done){
 
-        var t = new Transit('/test', Promise);
-        sinon.stub(st, 'normalize', function(req, res){ 
-            arguments.length.should.equal(2); 
-            res.end(); //just cancel the req for now
-            return t;
-        });
+        st.install(function(t, args){
+          t.should.be.an.instanceOf(Transit);
+          args.length.should.equal(3);
 
-        sinon.stub(st, 'handle', function(){ 
-            return new Promise(function(resolve, reject){
-                resolve('test');
-
-              });
-            }
-        );
-
-        st.install(function(){
+          //check if api is called
+          st.normalize.callCount.should.equal(1);
+          st.handle.callCount.should.equal(0);
+          done();
 
         });
-        
+
+        //send fake request
         request(sctx)
           .get('/bogus')
           .expect(200, '')
-          .end(function(){
-            st.normalize.callCount.should.equal(1);
-            st.handle.callCount.should.equal(1);
-            t.hasAttribute('_res').should.equal(true);
-            t.hasAttribute('_req').should.equal(true);
-            t.hasAttribute('_next').should.equal(true);
-            done();
-          });
+          .end(function(){});
 
       });
     }
 
   });
 
+
   describe('#handle()', function(){
 
-    var t, onStart, onController, onView, onEnd;
+    var t;
     beforeEach(function(){
-      onStart = 0;
-      onController = 0;
-      onView = 0;
-      onEnd = 0;
-
-      e.on('transit.start', function(){ onStart+=1;  });
-      e.on('transit.controller', function(){ onController+=1;  });
-      e.on('transit.view', function(){ onView+=1;  });
-      e.on('transit.end', function(){ onEnd+=1;  });
-
       t = new Transit('/bogus', Promise);
-      t.MAX_EXECUTION_TIME = 100; //lower it to speedup test
-
-      Promise.onPossiblyUnhandledRejection(function(err){
-          throw err;
-      });
-    });
-
-    it('should trigger event & return an promise & throw a ControllerNotFound exception', function(done){
-
-      var handled = bt.handle(t);
-      handled.then.should.be.an.instanceOf(Function);
-      handled.catch(Errors.ControllerNotFound, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
-        done();
-      });
-  
-    });
-
-    it('should show exceptions of the controller', function(done){
-
-      t.setFunction(function(){
-        arguments.length.should.equal(1);
-        throw new Error('deliberate controller error');
+      Promise.onPossiblyUnhandledRejection(function(error){
+          throw error;
       });
 
-      var handled = bt.handle(t);
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate controller error');
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
-        done();
-      });
+      sinon.spy(r, 'getScope');
+      sinon.spy(r, 'getArguments');
+      sinon.spy(r, 'getFunction');
 
     });
 
-    it('should throw time out', function(done){
+    it('should complete when all return immediately', function(done){
 
-      t.setFunction(function(){
-        //do nothing here, let it timeout
-      });
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
 
-      var handled = bt.handle(t);      
-      handled.catch(Errors.ControllerTimeout, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(0);
-        onEnd.should.equal(0);
+      var p = bt.handle(t);
+      p.should.be.an.instanceOf(Promise);
+      p.then(function(){
+
+        r.getScope.callCount.should.equal(1);
+        r.getArguments.callCount.should.equal(1);
+        r.getFunction.callCount.should.equal(1);
+
         done();
       });
 
     });
 
 
-    it('should throw on view event exception', function(done){
+    it('should throw when start throws', function(done){
 
-
-      e.on('transit.view', function(){
-        throw new Error('deliberate view exception');
+      t.controller.fn = function(){};
+      sinon.stub(t, 'start', function(){ 
+        return new Promise(function(resolve, reject){
+          throw new Error('deliberate error 1'); 
+        });
       });
 
-      t.setFunction(function(t){
-        t.render('aaa'); //actually attempt render something
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
+
+      var p = bt.handle(t);
+      p.catch(function(err){
+        err.message.should.equal('deliberate error 1');
+
+        r.getScope.callCount.should.equal(1);
+        r.getArguments.callCount.should.equal(1);
+        r.getFunction.callCount.should.equal(0); //controller.fn was already set
+
+        done();
       });
 
-      var handled = bt.handle(t);      
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate view exception');
+    });
+
+    it('should throw when run throws', function(done){
+
+      sinon.stub(t, 'run', function(){ 
+        return new Promise(function(resolve, reject){
+          throw new Error('deliberate error 2'); 
+        });
+      });
+
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
+
+      var p = bt.handle(t);
+      p.catch(function(err){
+        err.message.should.equal('deliberate error 2');
         done();
       });
 
     });
 
 
-    it('should throw invalid response', function(done){
+    it('should throw timeout when run takes to long', function(done){
 
-      t.setFunction(function(t){
-        t.render('aaa'); //actually attempt render something
-      });
+      t.timeout = 100;
+      sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
+      sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){  }); });
+      sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
 
-      var handled = bt.handle(t);      
-      handled.catch(Errors.ControllerReturnedInvalid, function(err){
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(1);
-        onEnd.should.equal(0);
+      var p = bt.handle(t);
+      p.catch(Errors.ControllerTimeout, function(err){
+        err.message.indexOf(t.timeout.toString()).should.not.equal(-1); //error should display timeout
         done();
       });
 
@@ -259,57 +250,9 @@ describe('Ticket', function(){
 
 
 
-    it('should throw exception in listener', function(done){
-
-      e.on('transit.end', function(){
-        throw new Error('deliberate end exception');
-      });
-
-      var res = new State('aaa');
-      t.setFunction(function(t){
-
-        t.render(res); //actually attempt render new state
-
-      });
-
-      var handled = bt.handle(t);      
-      handled.catch(Error, function(err){
-        err.message.should.equal('deliberate end exception');
-        done();
-      });
-
-    });
-
-    it('should succeed', function(done){
-
-      var res = new State('aaa');
-      t.setFunction(function(t){
-
-        t.render(res); //actually attempt render new state
-
-      });
-
-      var handled = bt.handle(t);      
-      handled.then(function(){
-
-        arguments.length.should.equal(1);
-        arguments[0].should.equal(res);
-
-        onStart.should.equal(1);
-        onController.should.equal(1);
-        onView.should.equal(1);
-        onEnd.should.equal(1);
-        done();
-
-      });
-
-
-
-
-    });
-
-  
   });
+
+
 
   describe('#normalize()', function(){
 
@@ -369,9 +312,7 @@ describe('Ticket', function(){
           }
 
           e.preventDefault();
-
       };
-
 
       link.setAttribute('href', '/#/test');
       link.dispatchEvent(e);
@@ -387,6 +328,7 @@ describe('Ticket', function(){
 
     });
 
+  
     if(server) {
       it('should throw on wrong server args', function(){
 
@@ -411,14 +353,12 @@ describe('Ticket', function(){
             t.url.should.equal('/test');
           } else {
             t.url.should.equal('/test2');
-            t.method.should.equal('POST');
           }
           res.end();
         });
 
         //trigger middleware
         request(sctx).get('/test').end(function(){});
-
         request(sctx).post('/test2').end(function(){});
 
       });
@@ -426,7 +366,6 @@ describe('Ticket', function(){
 
 
   });
-
 
 });
 

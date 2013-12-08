@@ -1,6 +1,6 @@
 {
   "name": "ticket.js",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "description": "A application kernel that abstracts express.js request handling and browser href click events into a common event interface for isomorphic purposes",
   "main": "index.js",
   "scripts": {

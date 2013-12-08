@@ -38,12 +38,9 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    * @method handle()
    * @param  {Transit} transit the transit
    * @return {Promise} resolves when transit is handled
-   */
-  self.handle = function handle(transit) {
-    return new Promise(function(resolve, reject){
 
-      //[EMIT] for start logic
-      emitter.emit('transit.start', transit);
+  self.handle = function handle(transit) {
+    var p = new Promise(function(resolve, reject){
 
       //deconstruct state
       var started = transit.start();
@@ -54,9 +51,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       if(transit.fn === false)
         transit.setFunction( resolver.getFunction(transit) );
 
-      //[DELEGATE] for just before controller logic
-      emitter.emit('transit.controller', transit);
-
       //reject when controller run takes to long
       var timer = setTimeout(function(){
         reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
@@ -66,30 +60,96 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
       var ended = transit.run().then(function(){
         clearTimeout(timer);
 
-        try {
-          //[EMIT] for view logic
-          emitter.emit('transit.view', transit);  
-        } catch(err) {
-          reject(err);
-        }
-
         return transit.end();
       }, reject);
 
       //when everything is finished, resolve it with new state
       Promise.all([started, ended]).then(function(){
-
-        try {
-          //[EMIT] for end logic
-          emitter.emit('transit.end', transit);
-        } catch(err) {
-          reject(err);
-        }
-
         resolve(transit.to);
       }, reject);
 
     });
+
+    transit.setHandle(p);
+    return p;
+
+  };
+   */
+
+  /**
+   * Handle the normalized transit throughout its livecycle
+   *
+   * @method handle()
+   * @param  {Transit} transit the transit
+   * @return {Promise} resolves when transit is handled
+   */
+  self.handle = function handle(transit) {
+    var deferred = transit.deferred;
+
+    //deconstruct state
+    var started = transit.start();
+
+
+    transit.controller.scope = resolver.getScope(transit);
+    transit.controller.args = resolver.getArguments(transit);
+      if(typeof transit.controller.fn !== 'function')
+        transit.controller.fn = resolver.getFunction(transit);
+
+    //@todo resolve using resolver
+
+
+    //reject when controller run takes to long
+    var timer = setTimeout(function(){
+      deferred.reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.timeout+'ms", did the controller call render?'));
+    }, transit.timeout);
+
+    //run controller
+    var ended = transit.run().then(function(){
+      clearTimeout(timer);
+
+      //when ran, end the transit
+      return transit.end();
+    }, function(err){
+      deferred.reject(err);
+    });
+
+    //when everything is finished, resolve it with new state
+    Promise.all([started, ended]).then(function(){
+
+      //when start and end it complete resolve the transit
+      deferred.resolve(transit.to);
+    }, function(err){
+      deferred.reject(err);
+    });
+
+    return deferred.promise;
+  };
+
+
+  /**
+   * Install the kernel with the handler to handle transits
+   *   
+   * @param  {Function} fn the transit handler
+   * @return {[type]}      [description]
+   */
+  self.install = function install(fn) {
+    if(self.isServer()) {
+      self.context.use(function(req, res, next){
+        var t = self.normalize(req, res);
+
+        fn(t, arguments);
+        self.handle(t);
+      });
+    } else {
+      self.context.document.onclick = function(e) {      
+        var t = self.normalize(e);
+        if(t === false || t === undefined)
+          return;
+
+        fn(t, arguments);
+        self.handle(t);
+      };
+    }
   };
 
 
@@ -100,7 +160,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
    * @param  {Function} fn the funtion that receives the transit handler
    * @return {Ticket}      self
    * @chainable
-   */
+
   self.install = function install(fn) {
     if(self.isServer()) {
       self.context.use(function(req, res, next){
@@ -108,7 +168,9 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         t.setAttribute('_res', res);
         t.setAttribute('_req', req);
         t.setAttribute('_next', next);
-        fn(self.handle(t));
+
+        var p = self.handle(t);
+        fn(t, p);
       });
     } else {
       self.context.document.onclick = function(e) {      
@@ -116,12 +178,15 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
         if(t === false || t === undefined)
           return;
 
-        fn(self.handle(t));
+        var p = self.handle(t);
+        fn(t, p);
       };
     }
 
     return self;
   };
+
+  */
 
   /**
    * Normalize the event for each environment, in the browser this is the click event, on the 

@@ -6,20 +6,11 @@ var Errors = require('./errors.js');
  * A new transition requires the url to transit to and the method
  *   
  * @param {string} url    the url
- * @param {string} method the method
  */
-var Transit = function Transit(url, Promise, method) {
+var Transit = function Transit(url, Promise, Emitter) {
   var self = this;
-  var deferred = Promise.defer();
   var attributes = {};
-  var timer;
-
-  /**
-   * Maximum time we wait for the controller to finish
-   * 
-   * @type {Number}
-   */
-  self.MAX_EXECUTION_TIME = 5000;
+  var controllerResolver = Promise.defer();
 
   /**
    * The new url we are transitioning to
@@ -28,29 +19,17 @@ var Transit = function Transit(url, Promise, method) {
   self.url = url;
 
   /**
-   * The HTTP method only relevant on server 
-   * @type {string}
+   * How long the controller can take before it times out
+   * @type {Number}
    */
-  self.method = typeof method !== 'undefined' ? method.toUpperCase() : 'GET';
+  self.timeout = 5000;
 
   /**
-   * The function that acts as the controller
-   * @type {mixed}
+   * Will contain the new state we are transitting to
+   * 
+   * @type {Boolean}
    */
-  self.fn = false;
-
-  /**
-   * Scope in which the controller function will be executed
-   * @type {object}
-   */
-  self.scope = self;
-
-  /**
-   * The arguments that will be passed to the function
-   * @type {Array}
-   */
-  self.arguments = [];
-
+  self.to = false;
 
   /**
    * The result that is returned from the controller
@@ -59,12 +38,115 @@ var Transit = function Transit(url, Promise, method) {
   self.result = false;
 
   /**
-   * The new state we Transition TO
-   * @type {State}
+   * The promise that completes whenever the transit is completely finished
+   * @type {Promise}
    */
-  self.to = false;
+  self.deferred = Promise.defer();
+
 
   /**
+   * Holds the controller as an scope, fn and args
+   * @type {Object}
+   */
+  self.controller = {
+    scope: self,
+    args: [],
+    fn: false
+  };
+
+  /**
+   * Returns promise that completes when deconstruction 
+   * phase from old state is complete
+   *   
+   * @return {Promise} the promise
+   */
+  self.start = function start() {
+    return Promise.all([]);
+  };
+
+  /**
+   * Returns promise that completes when construction 
+   * phase to the new state is complete
+   *   
+   * @return {Promise} the promise
+   */
+  self.end = function end() {
+
+    //check if new state is set
+    if(self.to === false)
+      throw new Errors.ControllerReturnedInvalid('Transit "to" state was not set from result, result is: "'+self.result+'"');
+
+    return Promise.all([]);
+  };
+
+  /**
+   * Returns a promise that completes whenever the controller
+   * has finished running;
+   * 
+   * @return {Promise} the promise
+   */
+  self.run = function run() {
+    var p = controllerResolver.promise;
+    if(self.to !== false) {
+      self.render(self.to);
+      return p;
+    }
+
+    if(self.result !== false) {
+      self.render(self.result);
+      return p;
+    }
+
+    if(!self.controller.fn) {
+      throw new Errors.ControllerNotFound('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
+    }
+
+    if(!Array.isArray(self.controller.args)) {
+      throw new Error('Provided controller arguments should be an Array, received "'+self.controller.args+'"');
+    }
+
+    if(typeof self.controller.scope !== 'object') {
+      throw new Error('Provided controller scope should be an Object, received "'+self.controller.scope+'"');
+    }
+
+    //if controller returns something right away (sync), try to render it
+    var args = self.controller.args;
+
+    args.unshift(self);
+    var res = self.controller.fn.apply(self.controller.scope, args);
+    if(res !== undefined) {
+      self.render(res);
+    }
+
+    return p;
+  };
+
+  /**
+   * Renders the result of the controller, this resolves the promise
+   * returned by run()
+   *   
+   * @param  {mixed} result
+   */
+  self.render = function render(result) {
+    controllerResolver.resolve(result);
+    self.result = result;
+
+    if(!result) {
+      throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
+    }
+
+    //duck type to see if if its an state object, if so set it right away
+    if(typeof result === 'object' && result.content !== undefined) {
+      self.to = result;
+    }
+    
+  };
+
+  /**
+   * ATTRIBUTE MANIPULATION
+   */
+
+ /**
    * Set the attributes container on this transit, overwrites existing
    * attributes
    *
@@ -133,128 +215,6 @@ var Transit = function Transit(url, Promise, method) {
     return true;
   };
 
-  /** 
-   * Set the scope in which the controller function will be executed
-   *
-   * @method setScope()
-   * @param {object} scope the object
-   */
-  self.setScope = function setScope(scope) {
-    self.scope = scope;
-  };
-
-  /**
-   * The function that is called as the controller action, is expected
-   * to render something
-   *
-   * @method setFunction()
-   * @param {Function} fn the controller
-   */
-  self.setFunction = function setFunction(fn) {
-    self.fn = fn;
-  };
-
-  /**
-   * Set the arguments passed to the controller
-   *
-   * @method setArguments()
-   * @param {Array} args the arguments
-   */
-  self.setArguments = function setArguments(args) {
-    self.arguments = args;
-  };
-
-  /**
-   * Start the deconstruct phase of the transit, ask the current
-   * state for the que
-   * 
-   * @return {Promise} the promise that completes when the que is finished
-   * @todo  retrieve from current state
-   */
-  self.start = function start() {
-    var que = [];
-    return Promise.all(que);
-  };
-
-
-  /**
-   * Get the construct que from the new state and return a promise
-   * that resolves when each promise in the que is resolved
-   * 
-   * @return {Promise} the promise
-   * @todo Retrieve que from state
-   */
-  self.end = function end() {
-    if(self.to === false)
-      throw new Errors.ControllerReturnedInvalid('Transit "to" was not set from result, result is: "'+self.result+'"');
-
-    var que = [];
-    return Promise.all(que);
-  };
-
-  /**
-   * Call the controller as the provided Fn, in the said scope using 
-   * the given arguments
-   *
-   * @method run()
-   * @return {Promise} the promise that resolves when the controller is complete
-   */
-  self.run = function run() {
-
-    var p = deferred.promise;
-    if(self.to !== false) {
-      self.render(self.to);
-      return p;
-    }
-
-    if(self.result !== false) {
-      self.render(self.result);
-      return p;
-    }
-
-    if(!self.fn) {
-      throw new Errors.ControllerNotFound('Unable to find the controller for path "'+self.url+'". Maybe you forgot to add the matching route?');
-    }
-
-    if(!Array.isArray(self.arguments)) {
-      throw new Error('Provided controller arguments should be an Array, received "'+self.arguments+'"');
-    }
-
-    if(typeof self.scope !== 'object') {
-      throw new Error('Provided controller scope should be an Object, received "'+self.scope+'"');
-    }
-
-    //if controller returns something right away (sync), try to render it
-    var res = self.fn.apply(self.scope, [self]);
-    if(res !== undefined) {
-      self.render(res);
-    }
-
-    return p;
-
-  };
-
-  /**
-   * Attempts to render the controllers result into the new state
-   *
-   * @method render()
-   * @param  {mixed} result the controllers retunred value
-   * @return {State} the new state or an exception
-   */
-  self.render = function render(result) {
-    deferred.resolve(result);
-    self.result = result;
-    
-    if(!result) {
-      throw new Error('Did you provide a value when rendering? received: "'+result+'"');
-    }
-
-    //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' && result.content !== undefined) {
-      self.to = result;
-    }
-    
-  };
 
 };
 
