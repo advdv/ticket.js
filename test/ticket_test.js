@@ -33,16 +33,16 @@ describe('Ticket', function(){
 
     e = new Emitter();
     r = new Resolver();
-    n = new Normalizer(Promise);
+    n = new Normalizer(Promise, e);
 
     if(server) {
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, n, Promise, sctx);      
+      st = new Ticket(r, n, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, n, Promise, bctx);
+    bt = new Ticket(r, n, Promise, bctx);
 
   });
 
@@ -77,11 +77,11 @@ describe('Ticket', function(){
 
     var doClick;
     beforeEach(function(){
-      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
+      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise, e); });
       sinon.stub(bt, 'handle', function(){});
 
       if(server) {
-        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise); });
+        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise, e); });
         sinon.stub(st, 'handle', function(){});
       }
 
@@ -177,7 +177,7 @@ describe('Ticket', function(){
 
     var t;
     beforeEach(function(){
-      t = new Transit('/bogus', Promise);
+      t = new Transit('/bogus', Promise, e);
       Promise.onPossiblyUnhandledRejection(function(error){
           throw error;
       });
@@ -190,6 +190,11 @@ describe('Ticket', function(){
 
     it('should complete when all return immediately', function(done){
 
+      var success = false;
+      t.on('end', function(){
+        success = true;
+      });
+
       sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
       sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
       sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
@@ -198,6 +203,7 @@ describe('Ticket', function(){
       p.should.be.an.instanceOf(Promise);
       p.then(function(){
 
+        success.should.equal(true);
         r.getScope.callCount.should.equal(1);
         r.getArguments.callCount.should.equal(1);
         r.getFunction.callCount.should.equal(1);

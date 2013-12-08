@@ -2,33 +2,28 @@
 var Transit = require('../src/transit.js');
 var State = require('../src/state.js');
 var Errors = require('../src/errors.js');
+var Emitter = require('eventemitter2').EventEmitter2;
 
 var Promise = require("bluebird");
 var sinon = require('sinon');
 
 describe('Transit', function(){
 
-  var t;
+  var t, emitter, onStart, onController, onView;
   beforeEach(function(){
-    t = new Transit('/test', Promise);
+    emitter = new Emitter();
+    t = new Transit('/test', Promise, emitter);
+
+    onStart = 0; 
+    onController =0;
+    onView =0;
+    t.on('controller', function(){ onController+=1; });
+    t.on('start', function(){ onStart +=1; });
+    t.on('view', function(){ onView +=1; });
+
   });
 
   describe('#construct()', function() {
-
-    it("should mixin promise", function(){
-
-
-
-    });
-
-
-    it("should mixin event emitter", function(){
-
-
-
-    });
-
-
     it("should construct promises", function(){
     
       t.url.should.equal('/test');
@@ -60,7 +55,24 @@ describe('Transit', function(){
       Object.keys(res).length.should.equal(3);
 
     });
+  });
 
+
+  describe('#on() / #emit()', function() {
+
+    it('should be called on correct event trigger', function(done){
+      t.on('view', done);
+      emitter.emit('transit.view./test'); 
+    });
+
+    it('should be called on correct event trigger', function(done){
+      t.on('view', function(a, b){
+        a.should.equal('a');
+        b.should.equal('b');
+        done();
+      });
+      t.emit('view', 'a', 'b');
+    });
 
   });
 
@@ -86,6 +98,8 @@ describe('Transit', function(){
       (function(){
         t.run();  
       }).should.throw(Error); //invalid scope
+
+      onController.should.equal(3);
 
     });
 
@@ -118,6 +132,7 @@ describe('Transit', function(){
       p.then(function(res){        
         t.render.callCount.should.equal(1);
         res.should.equal(s);
+        onView.should.equal(1);
         done();
       });
 
@@ -156,15 +171,11 @@ describe('Transit', function(){
         done();
       });
 
-
     });
-
-
 
   });
 
 
- 
   describe('#render()', function() {
 
     it("it should throw", function(){
@@ -179,16 +190,15 @@ describe('Transit', function(){
       t.to.should.equal(s);
     });
 
-
   });
 
   describe('#start()', function() {
 
-
     it("should work", function(){
-
       var p = t.start();
       p.then.should.be.an.instanceOf(Function); // promises/A+
+
+      onStart.should.equal(1);
     });
 
   });
@@ -208,6 +218,7 @@ describe('Transit', function(){
       t.to = new State('hello world');
       var p = t.end();
       p.then.should.be.an.instanceOf(Function); // promises/A+
+
     });
 
   });

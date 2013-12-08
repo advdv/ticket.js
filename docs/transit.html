@@ -7,7 +7,7 @@
 
 <ul>
 <li><strong>url must be a string.</strong><br/>(the url)</li>
-</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">Emitter</span><span class="p">)</span> <span class="p">{</span>
+</ul></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">Transit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">Transit</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">Promise</span><span class="p">,</span> <span class="nx">emitter</span><span class="p">)</span> <span class="p">{</span>
   <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
   <span class="kd">var</span> <span class="nx">attributes</span> <span class="o">=</span> <span class="p">{};</span>
   <span class="kd">var</span> <span class="nx">controllerResolver</span> <span class="o">=</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">defer</span><span class="p">();</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> </span></p>
@@ -28,10 +28,44 @@
     <span class="nx">fn</span><span class="o">:</span> <span class="kc">false</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
+<p>Attach a listener to an event on this transit</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>event must be a string.</strong><br/>(name of the event)</p></li>
+<li><p><strong>fn must be a Function.</strong><br/>(the handler)</p></li>
+</ul>
+
+<p><strong>Returns a Transit</strong><br/>(itself)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">on</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">on</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">emitter</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;transit.&#39;</span><span class="o">+</span><span class="nx">event</span><span class="o">+</span><span class="s1">&#39;.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">fn</span><span class="p">);</span>
+
+
+
+    <span class="k">return</span> <span class="nx">self</span><span class="p">;</span>
+  <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
+<p>Emit an event from the transit using the specific prefix</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><p><strong>event must be a string.</strong><br/>(name of the event   )</p></li>
+<li><p><strong>other must be an args.</strong><br/>(arguments)</p></li>
+</ul>
+
+<p><strong>Returns a Transit</strong><br/>(itself)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">emit</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">args</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">);</span>
+    <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;transit.&#39;</span><span class="o">+</span><span class="nx">event</span><span class="o">+</span><span class="s1">&#39;.&#39;</span><span class="o">+</span><span class="nx">self</span><span class="p">.</span><span class="nx">url</span><span class="p">;</span>
+    <span class="nx">emitter</span><span class="p">.</span><span class="nx">emit</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">emitter</span><span class="p">,</span> <span class="nx">args</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">self</span><span class="p">;</span>
+  <span class="p">};</span>  </div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
+
 <p>Returns promise that completes when deconstruction 
 phase from old state is complete</p>
 
 <p><strong>Returns a Promise</strong><br/>(the promise)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">start</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">start</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="nx">self</span><span class="p">);</span> <span class="c1">//[EMIT] before anything</span>
     <span class="k">return</span> <span class="nx">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([]);</span>
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'></span></p>
 
@@ -51,6 +85,7 @@ phase to the new state is complete</p>
 has finished running;</p>
 
 <p><strong>Returns a Promise</strong><br/>(the promise)</p></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">run</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">run</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="nx">self</span><span class="p">);</span> <span class="c1">//[EMIT] before controller is called</span>
     <span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="nx">controllerResolver</span><span class="p">.</span><span class="nx">promise</span><span class="p">;</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">!==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
       <span class="nx">self</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">to</span><span class="p">);</span>
@@ -96,14 +131,15 @@ returned by run()</p>
 </ul></div></div><div class="code"><div class="wrapper">  <span class="nx">self</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">render</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">controllerResolver</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
     <span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">=</span> <span class="nx">result</span><span class="p">;</span>
+    <span class="nx">self</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;view&#39;</span><span class="p">,</span> <span class="nx">self</span><span class="p">);</span>
 
-    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">self</span><span class="p">.</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
       <span class="k">throw</span> <span class="k">new</span> <span class="nx">Errors</span><span class="p">.</span><span class="nx">ControllerReturnedInvalid</span><span class="p">(</span><span class="s1">&#39;Did you provide a value when rendering? received: &quot;&#39;</span><span class="o">+</span><span class="nx">result</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span><span class="p">);</span>
     <span class="p">}</span>
 
     <span class="c1">//duck type to see if if its an state object, if so set it right away</span>
-    <span class="k">if</span><span class="p">(</span><span class="k">typeof</span> <span class="nx">result</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">result</span><span class="p">.</span><span class="nx">content</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
-      <span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="nx">result</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="k">typeof</span> <span class="nx">self</span><span class="p">.</span><span class="nx">result</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">self</span><span class="p">.</span><span class="nx">result</span><span class="p">.</span><span class="nx">content</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">self</span><span class="p">.</span><span class="nx">to</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">result</span><span class="p">;</span>
     <span class="p">}</span>
     
   <span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>ATTRIBUTE MANIPULATION</p></div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method setAttributes()</span></p>

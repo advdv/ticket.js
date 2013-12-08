@@ -1,6 +1,6 @@
 var Transit = require('./transit.js');
 
-var Normalizer = function Normalizer(Promise) {
+var Normalizer = function Normalizer(Promise, emitter) {
   var self = this;
 
 /**
@@ -19,7 +19,7 @@ var Normalizer = function Normalizer(Promise) {
       url = url.substring(url.indexOf('#')+1);
     }
 
-    var t = new Transit(url, Promise);
+    var t = new Transit(url, Promise, emitter);
     return t;
 
   };
@@ -32,7 +32,7 @@ var Normalizer = function Normalizer(Promise) {
    * @return {Transit}     The transit instance
    */
   self.normalizeServerRequest = function normalizeServerRequest(req, res) {
-    var t = new Transit(req.url, Promise, req.method);
+    var t = new Transit(req.url, Promise, emitter);
 
     return t;
   };

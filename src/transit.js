@@ -7,7 +7,7 @@ var Errors = require('./errors.js');
  *   
  * @param {string} url    the url
  */
-var Transit = function Transit(url, Promise, Emitter) {
+var Transit = function Transit(url, Promise, emitter) {
   var self = this;
   var attributes = {};
   var controllerResolver = Promise.defer();
@@ -55,12 +55,44 @@ var Transit = function Transit(url, Promise, Emitter) {
   };
 
   /**
+   * Attach a listener to an event on this transit
+   * 
+   * @param  {string}   event name of the event
+   * @param  {Function} fn    the handler
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.on = function on(event, fn) {
+    emitter.on('transit.'+event+'.'+self.url, fn);
+
+
+
+    return self;
+  };
+
+  /**
+   * Emit an event from the transit using the specific prefix
+   * 
+   * @param  {string}   event name of the event   
+   * @param {args}  other arguments
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.emit = function emit(event) {
+    var args = Array.prototype.slice.call(arguments);
+    args[0] = 'transit.'+event+'.'+self.url;
+    emitter.emit.apply(emitter, args);
+    return self;
+  };  
+
+  /**
    * Returns promise that completes when deconstruction 
    * phase from old state is complete
    *   
    * @return {Promise} the promise
    */
   self.start = function start() {
+    self.emit('start', self); //[EMIT] before anything
     return Promise.all([]);
   };
 
@@ -86,6 +118,7 @@ var Transit = function Transit(url, Promise, Emitter) {
    * @return {Promise} the promise
    */
   self.run = function run() {
+    self.emit('controller', self); //[EMIT] before controller is called
     var p = controllerResolver.promise;
     if(self.to !== false) {
       self.render(self.to);
@@ -130,14 +163,15 @@ var Transit = function Transit(url, Promise, Emitter) {
   self.render = function render(result) {
     controllerResolver.resolve(result);
     self.result = result;
+    self.emit('view', self);
 
-    if(!result) {
+    if(!self.result) {
       throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
     }
 
     //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' && result.content !== undefined) {
-      self.to = result;
+    if(typeof self.result === 'object' && self.result.content !== undefined) {
+      self.to = self.result;
     }
     
   };

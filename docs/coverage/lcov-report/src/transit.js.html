@@ -183,16 +183,16 @@
     <h1>Code coverage report for <span class="entity">src/transit.js</span></h1>
     <h2>
         
-        Statements: <span class="metric">100% <small>(61 / 61)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Statements: <span class="metric">100% <small>(72 / 72)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
         Branches: <span class="metric">100% <small>(22 / 22)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
-        Functions: <span class="metric">100% <small>(12 / 12)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Functions: <span class="metric">100% <small>(14 / 14)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
         
-        Lines: <span class="metric">100% <small>(61 / 61)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Lines: <span class="metric">100% <small>(72 / 72)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         
     </h2>
     <div class="path"><a href="../index.html">All files</a> &#187; <a href="index.html">src/</a> &#187; transit.js</div>
@@ -419,7 +419,41 @@
 218
 219
 220
-221</td><td class="line-coverage"><span class="cline-any cline-neutral">&nbsp;</span>
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255</td><td class="line-coverage"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -481,7 +515,39 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">25</span>
+<span class="cline-any cline-yes">42</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">42</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25</span>
+<span class="cline-any cline-yes">17</span>
+<span class="cline-any cline-yes">17</span>
+<span class="cline-any cline-yes">17</span>
+<span class="cline-any cline-yes">17</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25</span>
+<span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -507,6 +573,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">25</span>
+<span class="cline-any cline-yes">7</span>
 <span class="cline-any cline-yes">7</span>
 <span class="cline-any cline-yes">7</span>
 <span class="cline-any cline-yes">1</span>
@@ -549,6 +616,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">25</span>
+<span class="cline-any cline-yes">6</span>
 <span class="cline-any cline-yes">6</span>
 <span class="cline-any cline-yes">6</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -648,7 +716,7 @@ var Errors = require('./errors.js');
  *   
  * @param {string} url    the url
  */
-var Transit = function Transit(url, Promise, Emitter) {
+var Transit = function Transit(url, Promise, emitter) {
   var self = this;
   var attributes = {};
   var controllerResolver = Promise.defer();
@@ -696,12 +764,44 @@ var Transit = function Transit(url, Promise, Emitter) {
   };
 &nbsp;
   /**
+   * Attach a listener to an event on this transit
+   * 
+   * @param  {string}   event name of the event
+   * @param  {Function} fn    the handler
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.on = function on(event, fn) {
+    emitter.on('transit.'+event+'.'+self.url, fn);
+&nbsp;
+&nbsp;
+&nbsp;
+    return self;
+  };
+&nbsp;
+  /**
+   * Emit an event from the transit using the specific prefix
+   * 
+   * @param  {string}   event name of the event   
+   * @param {args}  other arguments
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.emit = function emit(event) {
+    var args = Array.prototype.slice.call(arguments);
+    args[0] = 'transit.'+event+'.'+self.url;
+    emitter.emit.apply(emitter, args);
+    return self;
+  };  
+&nbsp;
+  /**
    * Returns promise that completes when deconstruction 
    * phase from old state is complete
    *   
    * @return {Promise} the promise
    */
   self.start = function start() {
+    self.emit('start', self); //[EMIT] before anything
     return Promise.all([]);
   };
 &nbsp;
@@ -727,6 +827,7 @@ var Transit = function Transit(url, Promise, Emitter) {
    * @return {Promise} the promise
    */
   self.run = function run() {
+    self.emit('controller', self); //[EMIT] before controller is called
     var p = controllerResolver.promise;
     if(self.to !== false) {
       self.render(self.to);
@@ -771,14 +872,15 @@ var Transit = function Transit(url, Promise, Emitter) {
   self.render = function render(result) {
     controllerResolver.resolve(result);
     self.result = result;
+    self.emit('view', self);
 &nbsp;
-    if(!result) {
+    if(!self.result) {
       throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
     }
 &nbsp;
     //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' &amp;&amp; result.content !== undefined) {
-      self.to = result;
+    if(typeof self.result === 'object' &amp;&amp; self.result.content !== undefined) {
+      self.to = self.result;
     }
     
   };
@@ -864,7 +966,7 @@ module.exports = Transit;</pre></td></tr>
 
 </div>
 <div class="footer">
-    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Dec 08 2013 18:26:40 GMT+0100 (CET)</div>
+    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Sun Dec 08 2013 19:11:38 GMT+0100 (CET)</div>
 </div>
 
 <script src="../prettify.js"></script>

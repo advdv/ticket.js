@@ -86,7 +86,7 @@ var Errors = require('./errors.js');
  * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
+var Ticket = function Ticket(resolver, normalizer, Promise, context) {
   var self = this;
 
   /**
@@ -106,50 +106,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   self.isServer = function isServer() {
     return ((self.context.document === undefined) ? (true) : (false));
   };
-
-  /**
-   * Handle the normalized transit throughout its livecycle
-   *
-   * @method handle()
-   * @param  {Transit} transit the transit
-   * @return {Promise} resolves when transit is handled
-
-  self.handle = function handle(transit) {
-    var p = new Promise(function(resolve, reject){
-
-      //deconstruct state
-      var started = transit.start();
-
-      //use the resolver to get scope, args and fn
-      transit.setScope( resolver.getScope(transit) );
-      transit.setArguments( resolver.getArguments(transit) );
-      if(transit.fn === false)
-        transit.setFunction( resolver.getFunction(transit) );
-
-      //reject when controller run takes to long
-      var timer = setTimeout(function(){
-        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
-      }, transit.MAX_EXECUTION_TIME);
-
-      //run controller
-      var ended = transit.run().then(function(){
-        clearTimeout(timer);
-
-        return transit.end();
-      }, reject);
-
-      //when everything is finished, resolve it with new state
-      Promise.all([started, ended]).then(function(){
-        resolve(transit.to);
-      }, reject);
-
-    });
-
-    transit.setHandle(p);
-    return p;
-
-  };
-   */
 
   /**
    * Handle the normalized transit throughout its livecycle
@@ -186,6 +142,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 
     //when everything is finished, resolve it with new state
     Promise.all([started, ended]).then(function(){
+      transit.emit('end', transit); //let transit emit end event
 
       //when start and end it complete resolve the transit
       deferred.resolve(transit.to);
@@ -229,42 +186,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
     }
   };
 
-
-  /**
-   * Install onto the context, in the browser this means listening to click
-   * events, on the server this means installing middleware
-   * 
-   * @param  {Function} fn the funtion that receives the transit handler
-   * @return {Ticket}      self
-   * @chainable
-
-  self.install = function install(fn) {
-    if(self.isServer()) {
-      self.context.use(function(req, res, next){
-        var t = self.normalize(req, res);
-        t.setAttribute('_res', res);
-        t.setAttribute('_req', req);
-        t.setAttribute('_next', next);
-
-        var p = self.handle(t);
-        fn(t, p);
-      });
-    } else {
-      self.context.document.onclick = function(e) {      
-        var t = self.normalize(e);
-        if(t === false || t === undefined)
-          return;
-
-        var p = self.handle(t);
-        fn(t, p);
-      };
-    }
-
-    return self;
-  };
-
-  */
-
   /**
    * Normalize the event for each environment, in the browser this is the click event, on the 
    * server the request/res object
@@ -304,9 +225,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 
   };
 
-
-
-
 };
 
 module.exports = Ticket;
@@ -320,7 +238,7 @@ var Errors = require('./errors.js');
  *   
  * @param {string} url    the url
  */
-var Transit = function Transit(url, Promise, Emitter) {
+var Transit = function Transit(url, Promise, emitter) {
   var self = this;
   var attributes = {};
   var controllerResolver = Promise.defer();
@@ -368,12 +286,44 @@ var Transit = function Transit(url, Promise, Emitter) {
   };
 
   /**
+   * Attach a listener to an event on this transit
+   * 
+   * @param  {string}   event name of the event
+   * @param  {Function} fn    the handler
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.on = function on(event, fn) {
+    emitter.on('transit.'+event+'.'+self.url, fn);
+
+
+
+    return self;
+  };
+
+  /**
+   * Emit an event from the transit using the specific prefix
+   * 
+   * @param  {string}   event name of the event   
+   * @param {args}  other arguments
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.emit = function emit(event) {
+    var args = Array.prototype.slice.call(arguments);
+    args[0] = 'transit.'+event+'.'+self.url;
+    emitter.emit.apply(emitter, args);
+    return self;
+  };  
+
+  /**
    * Returns promise that completes when deconstruction 
    * phase from old state is complete
    *   
    * @return {Promise} the promise
    */
   self.start = function start() {
+    self.emit('start', self); //[EMIT] before anything
     return Promise.all([]);
   };
 
@@ -399,6 +349,7 @@ var Transit = function Transit(url, Promise, Emitter) {
    * @return {Promise} the promise
    */
   self.run = function run() {
+    self.emit('controller', self); //[EMIT] before controller is called
     var p = controllerResolver.promise;
     if(self.to !== false) {
       self.render(self.to);
@@ -443,14 +394,15 @@ var Transit = function Transit(url, Promise, Emitter) {
   self.render = function render(result) {
     controllerResolver.resolve(result);
     self.result = result;
+    self.emit('view', self);
 
-    if(!result) {
+    if(!self.result) {
       throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
     }
 
     //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' && result.content !== undefined) {
-      self.to = result;
+    if(typeof self.result === 'object' && self.result.content !== undefined) {
+      self.to = self.result;
     }
     
   };

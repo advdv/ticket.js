@@ -5649,7 +5649,7 @@ module.exports = {
 },{}],44:[function(require,module,exports){
 var Transit = require('./transit.js');
 
-var Normalizer = function Normalizer(Promise) {
+var Normalizer = function Normalizer(Promise, emitter) {
   var self = this;
 
 /**
@@ -5668,7 +5668,7 @@ var Normalizer = function Normalizer(Promise) {
       url = url.substring(url.indexOf('#')+1);
     }
 
-    var t = new Transit(url, Promise);
+    var t = new Transit(url, Promise, emitter);
     return t;
 
   };
@@ -5681,7 +5681,7 @@ var Normalizer = function Normalizer(Promise) {
    * @return {Transit}     The transit instance
    */
   self.normalizeServerRequest = function normalizeServerRequest(req, res) {
-    var t = new Transit(req.url, Promise, req.method);
+    var t = new Transit(req.url, Promise, emitter);
 
     return t;
   };
@@ -5762,7 +5762,7 @@ var Errors = require('./errors.js');
  * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
+var Ticket = function Ticket(resolver, normalizer, Promise, context) {
   var self = this;
 
   /**
@@ -5782,50 +5782,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   self.isServer = function isServer() {
     return ((self.context.document === undefined) ? (true) : (false));
   };
-
-  /**
-   * Handle the normalized transit throughout its livecycle
-   *
-   * @method handle()
-   * @param  {Transit} transit the transit
-   * @return {Promise} resolves when transit is handled
-
-  self.handle = function handle(transit) {
-    var p = new Promise(function(resolve, reject){
-
-      //deconstruct state
-      var started = transit.start();
-
-      //use the resolver to get scope, args and fn
-      transit.setScope( resolver.getScope(transit) );
-      transit.setArguments( resolver.getArguments(transit) );
-      if(transit.fn === false)
-        transit.setFunction( resolver.getFunction(transit) );
-
-      //reject when controller run takes to long
-      var timer = setTimeout(function(){
-        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
-      }, transit.MAX_EXECUTION_TIME);
-
-      //run controller
-      var ended = transit.run().then(function(){
-        clearTimeout(timer);
-
-        return transit.end();
-      }, reject);
-
-      //when everything is finished, resolve it with new state
-      Promise.all([started, ended]).then(function(){
-        resolve(transit.to);
-      }, reject);
-
-    });
-
-    transit.setHandle(p);
-    return p;
-
-  };
-   */
 
   /**
    * Handle the normalized transit throughout its livecycle
@@ -5862,6 +5818,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 
     //when everything is finished, resolve it with new state
     Promise.all([started, ended]).then(function(){
+      transit.emit('end', transit); //let transit emit end event
 
       //when start and end it complete resolve the transit
       deferred.resolve(transit.to);
@@ -5905,42 +5862,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
     }
   };
 
-
-  /**
-   * Install onto the context, in the browser this means listening to click
-   * events, on the server this means installing middleware
-   * 
-   * @param  {Function} fn the funtion that receives the transit handler
-   * @return {Ticket}      self
-   * @chainable
-
-  self.install = function install(fn) {
-    if(self.isServer()) {
-      self.context.use(function(req, res, next){
-        var t = self.normalize(req, res);
-        t.setAttribute('_res', res);
-        t.setAttribute('_req', req);
-        t.setAttribute('_next', next);
-
-        var p = self.handle(t);
-        fn(t, p);
-      });
-    } else {
-      self.context.document.onclick = function(e) {      
-        var t = self.normalize(e);
-        if(t === false || t === undefined)
-          return;
-
-        var p = self.handle(t);
-        fn(t, p);
-      };
-    }
-
-    return self;
-  };
-
-  */
-
   /**
    * Normalize the event for each environment, in the browser this is the click event, on the 
    * server the request/res object
@@ -5980,9 +5901,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 
   };
 
-
-
-
 };
 
 module.exports = Ticket;
@@ -5996,7 +5914,7 @@ var Errors = require('./errors.js');
  *   
  * @param {string} url    the url
  */
-var Transit = function Transit(url, Promise, Emitter) {
+var Transit = function Transit(url, Promise, emitter) {
   var self = this;
   var attributes = {};
   var controllerResolver = Promise.defer();
@@ -6044,12 +5962,44 @@ var Transit = function Transit(url, Promise, Emitter) {
   };
 
   /**
+   * Attach a listener to an event on this transit
+   * 
+   * @param  {string}   event name of the event
+   * @param  {Function} fn    the handler
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.on = function on(event, fn) {
+    emitter.on('transit.'+event+'.'+self.url, fn);
+
+
+
+    return self;
+  };
+
+  /**
+   * Emit an event from the transit using the specific prefix
+   * 
+   * @param  {string}   event name of the event   
+   * @param {args}  other arguments
+   * @return {Transit}         itself
+   * @chainable
+   */
+  self.emit = function emit(event) {
+    var args = Array.prototype.slice.call(arguments);
+    args[0] = 'transit.'+event+'.'+self.url;
+    emitter.emit.apply(emitter, args);
+    return self;
+  };  
+
+  /**
    * Returns promise that completes when deconstruction 
    * phase from old state is complete
    *   
    * @return {Promise} the promise
    */
   self.start = function start() {
+    self.emit('start', self); //[EMIT] before anything
     return Promise.all([]);
   };
 
@@ -6075,6 +6025,7 @@ var Transit = function Transit(url, Promise, Emitter) {
    * @return {Promise} the promise
    */
   self.run = function run() {
+    self.emit('controller', self); //[EMIT] before controller is called
     var p = controllerResolver.promise;
     if(self.to !== false) {
       self.render(self.to);
@@ -6119,14 +6070,15 @@ var Transit = function Transit(url, Promise, Emitter) {
   self.render = function render(result) {
     controllerResolver.resolve(result);
     self.result = result;
+    self.emit('view', self);
 
-    if(!result) {
+    if(!self.result) {
       throw new Errors.ControllerReturnedInvalid('Did you provide a value when rendering? received: "'+result+'"');
     }
 
     //duck type to see if if its an state object, if so set it right away
-    if(typeof result === 'object' && result.content !== undefined) {
-      self.to = result;
+    if(typeof self.result === 'object' && self.result.content !== undefined) {
+      self.to = self.result;
     }
     
   };
@@ -6244,16 +6196,16 @@ describe('Ticket', function(){
 
     e = new Emitter();
     r = new Resolver();
-    n = new Normalizer(Promise);
+    n = new Normalizer(Promise, e);
 
     if(server) {
       browser = new Browser({ debug: true });
       sctx = express();
       bctx = browser.open();
-      st = new Ticket(e, r, n, Promise, sctx);      
+      st = new Ticket(r, n, Promise, sctx);      
     }
   
-    bt = new Ticket(e, r, n, Promise, bctx);
+    bt = new Ticket(r, n, Promise, bctx);
 
   });
 
@@ -6288,11 +6240,11 @@ describe('Ticket', function(){
 
     var doClick;
     beforeEach(function(){
-      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise); });
+      sinon.stub(bt, 'normalize', function(){ return new Transit('/test', Promise, e); });
       sinon.stub(bt, 'handle', function(){});
 
       if(server) {
-        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise); });
+        sinon.stub(st, 'normalize', function(){ return new Transit('/test', Promise, e); });
         sinon.stub(st, 'handle', function(){});
       }
 
@@ -6388,7 +6340,7 @@ describe('Ticket', function(){
 
     var t;
     beforeEach(function(){
-      t = new Transit('/bogus', Promise);
+      t = new Transit('/bogus', Promise, e);
       Promise.onPossiblyUnhandledRejection(function(error){
           throw error;
       });
@@ -6401,6 +6353,11 @@ describe('Ticket', function(){
 
     it('should complete when all return immediately', function(done){
 
+      var success = false;
+      t.on('end', function(){
+        success = true;
+      });
+
       sinon.stub(t, 'start', function(){ return new Promise(function(res, rej){ res(); }); });
       sinon.stub(t, 'run', function(){ return new Promise(function(res, rej){ res(); }); });
       sinon.stub(t, 'end', function(){ return new Promise(function(res, rej){ res(); }); });
@@ -6409,6 +6366,7 @@ describe('Ticket', function(){
       p.should.be.an.instanceOf(Promise);
       p.then(function(){
 
+        success.should.equal(true);
         r.getScope.callCount.should.equal(1);
         r.getArguments.callCount.should.equal(1);
         r.getFunction.callCount.should.equal(1);

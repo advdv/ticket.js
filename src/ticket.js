@@ -11,7 +11,7 @@ var Errors = require('./errors.js');
  * @param {Promise} the bluebird promise lib
  * @param {DOMWindow|express} [context] the window on the client & express app on the server
  */
-var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
+var Ticket = function Ticket(resolver, normalizer, Promise, context) {
   var self = this;
 
   /**
@@ -31,50 +31,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
   self.isServer = function isServer() {
     return ((self.context.document === undefined) ? (true) : (false));
   };
-
-  /**
-   * Handle the normalized transit throughout its livecycle
-   *
-   * @method handle()
-   * @param  {Transit} transit the transit
-   * @return {Promise} resolves when transit is handled
-
-  self.handle = function handle(transit) {
-    var p = new Promise(function(resolve, reject){
-
-      //deconstruct state
-      var started = transit.start();
-
-      //use the resolver to get scope, args and fn
-      transit.setScope( resolver.getScope(transit) );
-      transit.setArguments( resolver.getArguments(transit) );
-      if(transit.fn === false)
-        transit.setFunction( resolver.getFunction(transit) );
-
-      //reject when controller run takes to long
-      var timer = setTimeout(function(){
-        reject(new Errors.ControllerTimeout('Controller for transit to url "' + transit.url + '" exceeded maximum execution time of: "'+transit.MAX_EXECUTION_TIME+'ms", did the controller call render?'));
-      }, transit.MAX_EXECUTION_TIME);
-
-      //run controller
-      var ended = transit.run().then(function(){
-        clearTimeout(timer);
-
-        return transit.end();
-      }, reject);
-
-      //when everything is finished, resolve it with new state
-      Promise.all([started, ended]).then(function(){
-        resolve(transit.to);
-      }, reject);
-
-    });
-
-    transit.setHandle(p);
-    return p;
-
-  };
-   */
 
   /**
    * Handle the normalized transit throughout its livecycle
@@ -111,6 +67,7 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
 
     //when everything is finished, resolve it with new state
     Promise.all([started, ended]).then(function(){
+      transit.emit('end', transit); //let transit emit end event
 
       //when start and end it complete resolve the transit
       deferred.resolve(transit.to);
@@ -154,42 +111,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
     }
   };
 
-
-  /**
-   * Install onto the context, in the browser this means listening to click
-   * events, on the server this means installing middleware
-   * 
-   * @param  {Function} fn the funtion that receives the transit handler
-   * @return {Ticket}      self
-   * @chainable
-
-  self.install = function install(fn) {
-    if(self.isServer()) {
-      self.context.use(function(req, res, next){
-        var t = self.normalize(req, res);
-        t.setAttribute('_res', res);
-        t.setAttribute('_req', req);
-        t.setAttribute('_next', next);
-
-        var p = self.handle(t);
-        fn(t, p);
-      });
-    } else {
-      self.context.document.onclick = function(e) {      
-        var t = self.normalize(e);
-        if(t === false || t === undefined)
-          return;
-
-        var p = self.handle(t);
-        fn(t, p);
-      };
-    }
-
-    return self;
-  };
-
-  */
-
   /**
    * Normalize the event for each environment, in the browser this is the click event, on the 
    * server the request/res object
@@ -228,9 +149,6 @@ var Ticket = function Ticket(emitter, resolver, normalizer, Promise, context) {
     }
 
   };
-
-
-
 
 };
 
